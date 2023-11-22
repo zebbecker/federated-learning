@@ -1,0 +1,2 @@
+- Where to define list of worker nodes, once more than 4? 
+- How to pass address of coordinator to each worker? 
