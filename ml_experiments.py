@@ -49,7 +49,7 @@ def train(model, train_dl, epochs, optimizer, loss):
 
         print(f"Running Epoch {epoch + 1} of {epochs}")
         epoch_losses = []
-        for i, batch in enumerate(train_dl):
+        for batch in train_dl:
             x, y = batch
             x, y = x.to(device), y.to(device)
             batch_loss = train_batch(model, x, y, optimizer, loss)
@@ -70,7 +70,7 @@ print(train_time)
 
 
 # Poke around and see what we can extract
-params = list(model.parameters())
+params = model.parameters()
 raw_weights = [param.data.tolist() for param in params]
 # print(raw_weights[0])
 # print(len(raw_weights))
@@ -87,7 +87,7 @@ worker_copy = nn.Sequential(
     nn.Linear(3136, 10)
 ).to(device)  # Assuming the worker knows the model format...
 
-# Try to update weights
+# Try to update weights using the raw weights
 old_state = worker_copy.state_dict()
 new_state = old_state.copy()
 for name, new_weights in zip(old_state, raw_weights):
