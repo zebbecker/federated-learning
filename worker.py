@@ -15,12 +15,15 @@ import xmlrpc.client
 import torch
 import torch.nn as nn
 from torchvision.datasets import MNIST
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchsummary import summary
 from torch.optim import Adam
 
 import numpy as np
+
+BATCH_SIZE = 128
+LEARNING_RATE = .001
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -28,15 +31,25 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 class Worker:
 
     def __init__(self):
-        self.data = None
-        self.train_dl = None
-        self.test_dl = None
-
+        
+        # Server and Model Stuff
+        # Filled in by connect with info from coordinator
         self.server = None
         self.model = None
         self.optimizer = None
         self.loss = None
         self.epochs = 1
+
+        # Set up data
+        self.train_dl = None
+        self.test_dl = None
+
+        # Can always switch to local files later,
+        # Gonna put this here for now (like every worker has the entire dataset)
+        mnist_train = MNIST('~/data', train=True, download=True, transform=transforms.ToTensor())
+        mnist_test = MNIST('~/data', train=False, download=True, transform=transforms.ToTensor())
+        self.train_dl = DataLoader(mnist_train, batch_size=BATCH_SIZE, shuffle=True)
+        self.test_dl = DataLoader(mnist_test, batch_size=BATCH_SIZE, shuffle=True)
 
     def connect(self, hostname):
         """Establish connection to coordinator"""
@@ -59,7 +72,7 @@ class Worker:
             nn.Flatten(),
             nn.Linear(3136, 10)
         ).to(device)  # Assuming the worker knows the model format...
-        self.optimizer = Adam(self.model.parameters(), lr=.001)
+        self.optimizer = Adam(self.model.parameters(), lr=LEARNING_RATE)
         self.loss = nn.CrossEntropyLoss().to(device)
 
 
