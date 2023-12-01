@@ -6,6 +6,12 @@ Idea is for workers to connect to coordinator then iteratively train
 3. Train on local data
 4. Send update to coordinator and receive global update
 5. Go back to step 3 and loop for lifetime of worker
+
+TODO
+- Right now Worker assumes that coordinator has connect and update methods
+- Need to figure out data formatting, to make sure things are marshalled correctly
+- Eventually change data to work with local files
+- Eventually add a way to dynamically create model architecture
 """
 
 import sys
@@ -25,6 +31,7 @@ import numpy as np
 BATCH_SIZE = 128
 LEARNING_RATE = .001
 
+# Check if GPU is available, and use if possible, data is sent to "device" later
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -40,7 +47,8 @@ class Worker:
         self.loss = None
         self.epochs = 1
 
-        # Set up data
+        # Set up data using PyTorch DataLoaders
+        # Just a helpful object for splitting up data 
         self.train_dl = None
         self.test_dl = None
 
@@ -90,6 +98,8 @@ class Worker:
 
 
     def train_batch(self, x, y):
+        """Given data and labels for a batch, learn better weights"""
+
         self.optimizer.zero_grad()       # Flush memory
         pred = self.model(x)             # Get predictions
         batch_loss = self.loss(pred, y)  # Compute loss
