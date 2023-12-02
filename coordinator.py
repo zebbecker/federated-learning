@@ -1,4 +1,7 @@
 from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.client import ServerProxy
+
+import numpy as np
 
 """
 Idea here is that server calls setup() to initialize model, and from there
@@ -26,78 +29,92 @@ declares a new epoch.
 
 """
 
-SERVER_NAME = "name of server?"
 COORDINATOR_IP = "0.0.0.0"
 PORT = 8000
-NUM_WORKERS = 10
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
-QUORUM = 8
-MAX_EPOCHS = 100  # @TODO add graceful shutdown for workers and coordinator
-# Not needed now- can just use shutdown script.
 
-epoch = 0
-updates = []
-weights = []
-workers_completed = 0
+class Coordinator:
+
+    def __init__(self, quorum_percentage=0.8, max_epochs=10):
+
+        # Set up RPC server
+        self.server = SimpleXMLRPCServer((COORDINATOR_IP, PORT))
+        self.weights = np.zeros(10)  # @TODO make this dynamic
+
+        self.workers = {}
+        self.updates = []
+        self.quorum_pct = quorum_percentage
+        self.epoch = 0
+        self.max_epochs = max_epochs
+
+    def accept_connection(self, hostname):
+        """First call from worker, used to register worker with coordinator
+        
+        Allows worker to get set up with same structure as coordinator. Model
+        spec format is TBD, but should probably be a dict of some sort that
+        includes model architecture and hyperparameters.
+        """
+
+        self.workers[hostname] = ServerProxy(hostname)
+        model_spec = {"input_size": 784, "hidden_size": 128, "output_size": 10} # @TODO make this dynamic
+        return model_spec
+
+    def send_update(self):
+        """Send update to worker upon request"""
+        return self.weights.tolist(), self.epoch
+
+    def receive_update(self, weights):
+        """Receive update from worker"""
+
+        # Check that weights are the correct shape
+        weights = np.array(weights)
+        if weights.shape != np.array(self.weights).shape:
+            return "Error: Incorrect shape for weights"
+        
+        # Add update to queue, and start new epoch if enough updates have been received
+        self.updates.append(weights)
+        if len(self.updates) > self.quorum_pct * len(self.workers):
+            self.start_new_epoch()
+
+        return "Ok"
+
+    def start_new_epoch(self):
+        """Update global weights and start new epoch"""
+        
+        # Merge updates into global weights
+        updates = np.array(self.updates)
+        self.weights = np.mean(updates, axis=0)
+
+        # Notify workers of new epoch
+        for worker in self.workers.values():
+            worker.notify()
+
+        # Reset updates and increment epoch
+        self.updates = []
+        self.epoch += 1
+
+        if self.epoch > self.max_epochs:
+            self.server.shutdown()  # Not sure if this is the right way to do this
+            print("Training complete")
+            print("Final weights: ", self.weights)
+
+    def handle_disconnect(self, hostname):
+        """Remove worker from list of active workers"""
+        del self.workers[hostname]
+
+    def run(self):
+        self.server.register_function(self.accept_connection, "connect")
+        self.server.register_function(self.send_update, "get_update")
+        self.server.register_function(self.receive_update, "load_update")
+        self.server.register_function(self.handle_disconnect, "disconnect")
+        self.server.serve_forever()
 
 
-def ping():
-    return "ping!"
+def main():
+    coordinator = Coordinator()
+    coordinator.run()
 
 
-# Send current weights and epoch number to worker ([], int)
-def get_task(worker_epoch):
-    if worker_epoch < epoch:
-        return (weights, epoch)
-    else:
-        # if worker has already completed training for this epoch, don't bother sending current weights over network again
-        return (None, None)
-
-
-# @TODO graceful shutdown
-# Allows workers to check if they should shut down.
-def is_done():
-    return False
-
-
-def load_update(update, worker_epoch):
-    if worker_epoch != epoch:
-        # update outdated: discard
-        return
-    else:
-        updates.append(update)
-        workers_completed += 1
-
-    if workers_completed > QUORUM:
-        start_new_epoch()
-
-
-def setup():
-    # do any model setup needed here
-    # define first round weights here
-    pass
-
-
-def apply_updates():
-    # Update model weights here
-    pass
-
-
-def start_new_epoch():
-    global workers_completed, weights, epoch  # modify global vars
-    workers_completed = 0
-    weights = apply_updates(updates)
-    epoch += 1
-
-
-server = SimpleXMLRPCServer((SERVER_NAME, PORT))
-print("Coordinator started, listening on port", PORT)
-server.register_function(ping, "ping")
-server.register_function(get_task, "get_task")
-server.register_function(load_update, "load_update")
-server.register_function(is_done, "is_done")
-
-setup()  # initialize model and set epoch to 0
-
-server.serve_forever()
+if __name__ == "__main__":
+    main()

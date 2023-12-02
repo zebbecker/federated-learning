@@ -3,9 +3,10 @@
 Idea is for workers to connect to coordinator then iteratively train
 1. Send introduction to coordinator
 2. Initialize model from coordinator's spec
-3. Train on local data
-4. Send update to coordinator and receive global update
-5. Go back to step 3 and loop for lifetime of worker
+3. Get global update from coordinator
+4. Train on local data
+5. Send update to coordinator 
+6. Go back to step 3 and loop for lifetime of worker
 
 TODO
 - Right now Worker assumes that coordinator has connect and update methods
@@ -30,7 +31,6 @@ from torch.optim import Adam
 
 import numpy as np
 
-SERVER_NAME = "Worker"
 PORT = 8000
 BATCH_SIZE = 128
 LEARNING_RATE = .001
@@ -39,13 +39,13 @@ LEARNING_RATE = .001
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-
 class Worker:
 
-    def __init__(self):
+    def __init__(self, ip_address):
         
         # Set up RPC server to receive notifications
-        self.server = SimpleXMLRPCServer((SERVER_NAME, PORT))
+        self.hostname = "http://" + ip_address + ":" + str(PORT)
+        self.server = SimpleXMLRPCServer((ip_address, PORT))
         self.update_ready = False
 
         # Coordinator and Model Stuff
@@ -55,6 +55,7 @@ class Worker:
         self.optimizer = None
         self.loss = None
         self.epochs = 1
+        self.global_epoch = 0
 
         # Set up data using PyTorch DataLoaders
         # Just a helpful object for splitting up data 
@@ -79,7 +80,7 @@ class Worker:
         # Connect to host and greet with intro message
         self.coordinator = xmlrpc.client.ServerProxy(hostname)
         try:
-            model_info = self.coordinator.Coordinator.connect()
+            model_spec = self.coordinator.Coordinator.connect(self.hostname)
             print("Connected to", hostname)
         except ConnectionRefusedError as e:
             print("Error: Unable to connect to", hostname)
@@ -169,17 +170,31 @@ class Worker:
         """Main loop for working with coordinator"""
 
         while True:
-            new_weights = self.train()
+
+            # Get caught up to date with coordinator
             try:
-                self.coordinator.Coordinator.update(new_weights)
-                self.wait_for_notification()
-                update = self.coordinator.Coordinator.get_update()
+                update, epoch = self.coordinator.Coordinator.get_update()
                 self.update_weights(update)
+                self.global_epoch = epoch
+            except Exception as e:
+                print(f"Problem while updating: {e}")
+                break
+
+            # Train on local data and push contribution
+            try:
+                new_weights = self.train()
+                status = self.coordinator.Coordinator.update(new_weights)
+                if status != "Ok":
+                    print(f"Coordinator could not use update: {status}")
+                    break
+                self.wait_for_notification()
+                
             except Exception as e:
                 print(f"Problem while training: {e}")
                 break
 
         # Clean up worker server - allows thread to complete
+        self.coordinator.Coordinator.disconnect(self.hostname)
         self.server.shutdown()
         self.server.server_close()
 
@@ -187,9 +202,13 @@ class Worker:
 def main():
 
     print(f"Running on {device}")
-    worker = Worker()
+    
+    # Get hostname from command line "http://<hostname>:<port>"
     name = sys.argv[1]
     hostname = "http://" + name
+
+    worker_ip = sys.argv[2]
+    worker = Worker(worker_ip)
 
     try:
         worker.connect(hostname)
