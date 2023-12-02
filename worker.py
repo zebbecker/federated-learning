@@ -17,6 +17,8 @@ TODO
 import sys
 import time
 import xmlrpc.client
+from xmlrpc.server import SimpleXMLRPCServer
+import threading
 
 import torch
 import torch.nn as nn
@@ -28,6 +30,8 @@ from torch.optim import Adam
 
 import numpy as np
 
+SERVER_NAME = "Worker"
+PORT = 8000
 BATCH_SIZE = 128
 LEARNING_RATE = .001
 
@@ -35,13 +39,18 @@ LEARNING_RATE = .001
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+
 class Worker:
 
     def __init__(self):
         
-        # Server and Model Stuff
+        # Set up RPC server to receive notifications
+        self.server = SimpleXMLRPCServer((SERVER_NAME, PORT))
+        self.update_ready = False
+
+        # Coordinator and Model Stuff
         # Filled in by connect with info from coordinator
-        self.server = None
+        self.coordinator = None
         self.model = None
         self.optimizer = None
         self.loss = None
@@ -62,10 +71,15 @@ class Worker:
     def connect(self, hostname):
         """Establish connection to coordinator"""
 
+        # Start up worker server in seperate thread
+        self.server.register_function(self.receive_notification, "notify")
+        server_thread = threading.Thread(target=self.server.serve_forever)
+        server_thread.start()     
+
         # Connect to host and greet with intro message
-        self.server = xmlrpc.client.ServerProxy(hostname)
+        self.coordinator = xmlrpc.client.ServerProxy(hostname)
         try:
-            model_info = self.server.Coordinator.connect()
+            model_info = self.coordinator.Coordinator.connect()
             print("Connected to", hostname)
         except ConnectionRefusedError as e:
             print("Error: Unable to connect to", hostname)
@@ -139,17 +153,35 @@ class Worker:
         return [param.data.tolist() for param in self.model.parameters()]
 
 
+    def receive_notification(self):
+        self.update_ready = True
+
+    def wait_for_notification(self):
+        
+        # Wait for server thread to register an update
+        while not self.update_ready:
+            time.sleep(.01)
+
+        # Reset update status for later
+        self.update_ready = False
+
     def work(self):
         """Main loop for working with coordinator"""
 
         while True:
             new_weights = self.train()
             try:
-                update = self.server.Coordinator.update(new_weights)
+                self.coordinator.Coordinator.update(new_weights)
+                self.wait_for_notification()
+                update = self.coordinator.Coordinator.get_update()
                 self.update_weights(update)
             except Exception as e:
                 print(f"Problem while training: {e}")
                 break
+
+        # Clean up worker server - allows thread to complete
+        self.server.shutdown()
+        self.server.server_close()
 
 
 def main():
