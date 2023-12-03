@@ -86,7 +86,7 @@ class Worker:
         # Connect to host and greet with intro message
         self.coordinator = xmlrpc.client.ServerProxy(hostname)
         try:
-            model_spec = self.coordinator.Coordinator.connect(self.hostname)
+            self.coordinator.connect(self.hostname)
             print("Connected to", hostname)
         except ConnectionRefusedError as e:
             print("Error: Unable to connect to", hostname)
@@ -170,7 +170,7 @@ class Worker:
         while True:
             # Get caught up to date with coordinator
             try:
-                update, epoch = self.coordinator.Coordinator.get_update()
+                update, epoch = self.coordinator.get_update()
                 self.update_weights(update)
                 self.global_epoch = epoch
             except Exception as e:
@@ -180,7 +180,7 @@ class Worker:
             # Train on local data and push contribution
             try:
                 new_weights = self.train()
-                status = self.coordinator.Coordinator.update(new_weights)
+                status = self.coordinator.update(new_weights)
                 if status != "Ok":
                     print(f"Coordinator could not use update: {status}")
                     break
@@ -191,7 +191,7 @@ class Worker:
                 break
 
         # Clean up worker server - allows thread to complete
-        self.coordinator.Coordinator.disconnect(self.hostname)
+        self.coordinator.disconnect(self.hostname)
         self.server.shutdown()
         self.server.server_close()
 

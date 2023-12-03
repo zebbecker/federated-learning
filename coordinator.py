@@ -2,6 +2,9 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.client import ServerProxy
 
 import numpy as np
+import torch
+
+import worker_model
 
 """
 Idea here is that server calls setup() to initialize model, and from there
@@ -29,18 +32,36 @@ declares a new epoch.
 
 """
 
-COORDINATOR_IP = "0.0.0.0"
-PORT = 8000
+COORDINATOR_IP = "139.140.197.180"
+PORT = 8081
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
+
+def is_equal_dimensions(l1, l2):
+    """Helper to compare two lists of tensors"""
+
+    # Check number of tensors
+    if len(l1) != len(l2):
+        return False
+    
+    # Check each tensor size
+    for t1, t2 in zip(l1, l2):
+        if t1.size() != t2.size():
+            return False
+    
+    return True
+
 
 class Coordinator:
 
     def __init__(self, quorum_percentage=0.8, max_epochs=10):
 
+        # Initialize weights using worker_model spec, list of tensors
+        model = worker_model.model
+        self.weights = [param.data for param in model.parameters()]
+
         # Set up RPC server
         self.server = SimpleXMLRPCServer((COORDINATOR_IP, PORT))
-        self.weights = np.zeros(10)  # @TODO make this dynamic
 
         self.workers = {}
         self.updates = []
@@ -57,19 +78,17 @@ class Coordinator:
         """
 
         self.workers[hostname] = ServerProxy(hostname)
-        model_spec = {"input_size": 784, "hidden_size": 128, "output_size": 10} # @TODO make this dynamic
-        return model_spec
 
     def send_update(self):
         """Send update to worker upon request"""
-        return self.weights.tolist(), self.epoch
+        return [tensor.tolist() for tensor in self.weights], self.epoch
 
     def receive_update(self, weights):
         """Receive update from worker"""
 
         # Check that weights are the correct shape
-        weights = np.array(weights)
-        if weights.shape != np.array(self.weights).shape:
+        weights = [torch.FloatTensor(element) for element in weights]
+        if not is_equal_dimensions(weights, self.weights):
             return "Error: Incorrect shape for weights"
         
         # Add update to queue, and start new epoch if enough updates have been received
