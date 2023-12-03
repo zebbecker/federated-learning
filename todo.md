@@ -13,8 +13,15 @@ Alex/ML
 - training task and code 
 
 Zeb/Infrastructure 
+- add python virtual environment setup to deployment and start scripts 
+- set var for username
+- ensure needed python packages available on test machines
 - Diagram worker-coordinator functions, system architecture 
 - Implement structure (functions dont do anything)
+- graceful shutdown of clients and coordinator 
+- how to set quorum parameter? 
+- dynamic quorum size
+- investigate scalability of sequential server model. ThreadsMixIn? 
 
 Presentation and Paper
 - Design experiments 
