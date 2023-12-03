@@ -75,7 +75,7 @@ class Worker:
         self.train_dl = DataLoader(mnist_train, batch_size=BATCH_SIZE, shuffle=True)
         self.test_dl = DataLoader(mnist_test, batch_size=BATCH_SIZE, shuffle=True)
 
-    def connect(self, hostname):
+    def connect(self, coordinator_hostname):
         """Establish connection to coordinator"""
 
         # Start up worker server in seperate thread
@@ -84,12 +84,12 @@ class Worker:
         server_thread.start()
 
         # Connect to host and greet with intro message
-        self.coordinator = xmlrpc.client.ServerProxy(hostname)
+        self.coordinator = xmlrpc.client.ServerProxy(self.hostname)
         try:
-            self.coordinator.connect(self.hostname)
-            print("Connected to", hostname)
-        except ConnectionRefusedError as e:
-            print("Error: Unable to connect to", hostname)
+            self.coordinator.connect(coordinator_hostname)
+            print("Connected to", coordinator_hostname)
+        except Exception as e:
+            print("Error: Unable to connect to", coordinator_hostname)
             raise e
 
         # Initialize model as it is defined in worker_model.py
@@ -204,13 +204,13 @@ def main():
     
     # Get hostname from command line "http://<hostname>:<port>"
     name = sys.argv[1]
-    hostname = "http://" + name
+    coordinator_hostname = "http://" + name
 
     worker_ip = sys.argv[2]
     worker = Worker(worker_ip)
 
     try:
-        worker.connect(hostname)
+        worker.connect(coordinator_hostname)
     except ConnectionRefusedError as e:
         print(f"Couldn't Connect: {e}")
 
