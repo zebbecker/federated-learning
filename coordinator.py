@@ -1,4 +1,4 @@
-from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 from xmlrpc.client import ServerProxy
 
 import numpy as np
@@ -32,10 +32,11 @@ declares a new epoch.
 
 """
 
-COORDINATOR_IP = "139.140.197.180"
+COORDINATOR_IP = "139.140.215.220"
 PORT = 8081
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
+
 
 def is_equal_dimensions(l1, l2):
     """Helper to compare two lists of tensors"""
@@ -43,25 +44,25 @@ def is_equal_dimensions(l1, l2):
     # Check number of tensors
     if len(l1) != len(l2):
         return False
-    
+
     # Check each tensor size
     for t1, t2 in zip(l1, l2):
         if t1.size() != t2.size():
             return False
-    
+
     return True
 
 
 class Coordinator:
-
     def __init__(self, quorum_percentage=0.8, max_epochs=10):
-
         # Initialize weights using worker_model spec, list of tensors
         model = worker_model.model
         self.weights = [param.data for param in model.parameters()]
 
         # Set up RPC server
-        self.server = SimpleXMLRPCServer((COORDINATOR_IP, PORT))
+        self.server = SimpleXMLRPCServer(
+            (COORDINATOR_IP, PORT), requestHandler=SimpleXMLRPCRequestHandler
+        )
 
         self.workers = {}
         self.updates = []
@@ -71,13 +72,14 @@ class Coordinator:
 
     def accept_connection(self, hostname):
         """First call from worker, used to register worker with coordinator
-        
+
         Allows worker to get set up with same structure as coordinator. Model
         spec format is TBD, but should probably be a dict of some sort that
         includes model architecture and hyperparameters.
         """
-
+        print("Accepting connection on coordinator from " + hostname)
         self.workers[hostname] = ServerProxy(hostname)
+        return "connected!"
 
     def send_update(self):
         """Send update to worker upon request"""
@@ -90,7 +92,7 @@ class Coordinator:
         weights = [torch.FloatTensor(element) for element in weights]
         if not is_equal_dimensions(weights, self.weights):
             return "Error: Incorrect shape for weights"
-        
+
         # Add update to queue, and start new epoch if enough updates have been received
         self.updates.append(weights)
         if len(self.updates) > self.quorum_pct * len(self.workers):
@@ -100,7 +102,7 @@ class Coordinator:
 
     def start_new_epoch(self):
         """Update global weights and start new epoch"""
-        
+
         # Merge updates into global weights
         updates = np.array(self.updates)
         self.weights = np.mean(updates, axis=0)
@@ -121,12 +123,14 @@ class Coordinator:
     def handle_disconnect(self, hostname):
         """Remove worker from list of active workers"""
         del self.workers[hostname]
+        return "Removed " + hostname + " from active worker list."
 
     def run(self):
         self.server.register_function(self.accept_connection, "connect")
         self.server.register_function(self.send_update, "get_update")
         self.server.register_function(self.receive_update, "load_update")
         self.server.register_function(self.handle_disconnect, "disconnect")
+        print("Coordinator serving at http://" + COORDINATOR_IP + "/" + str(PORT))
         self.server.serve_forever()
 
 

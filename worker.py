@@ -33,7 +33,7 @@ import numpy as np
 
 import worker_model
 
-PORT = 8000
+PORT = 8082
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
 
@@ -46,8 +46,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 class Worker:
     def __init__(self, ip_address):
         # Set up RPC server to receive notifications
-        self.hostname = "http://" + ip_address + ":" + str(PORT)
-        self.server = SimpleXMLRPCServer((ip_address, PORT))
+        self.hostname = (
+            "http://" + ip_address + ":" + str(PORT)
+        )  # address that worker server is serving on
+        self.server = SimpleXMLRPCServer((ip_address, PORT))  # worker server
         self.update_ready = False
 
         # Coordinator and Model Stuff
@@ -78,15 +80,20 @@ class Worker:
     def connect(self, coordinator_hostname):
         """Establish connection to coordinator"""
 
+        print("Worker attemping to connect to " + coordinator_hostname)
+
         # Start up worker server in seperate thread
         self.server.register_function(self.receive_notification, "notify")
         server_thread = threading.Thread(target=self.server.serve_forever)
         server_thread.start()
+        print("Started worker server in seperate thread")
 
         # Connect to host and greet with intro message
-        self.coordinator = xmlrpc.client.ServerProxy(self.hostname)
+        # self.coordinator = xmlrpc.client.ServerProxy(self.hostname)
+        self.coordinator = xmlrpc.client.ServerProxy(coordinator_hostname)
+
         try:
-            self.coordinator.connect(coordinator_hostname)
+            self.coordinator.connect(self.hostname)
             print("Connected to", coordinator_hostname)
         except Exception as e:
             print("Error: Unable to connect to", coordinator_hostname)
@@ -201,7 +208,7 @@ def main():
     if len(sys.argv) != 3:
         print("Usage: python worker.py coordinator_ip:port worker_ip")
         sys.exit(1)
-    
+
     # Get hostname from command line "http://<hostname>:<port>"
     name = sys.argv[1]
     coordinator_hostname = "http://" + name
