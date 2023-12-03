@@ -95,7 +95,15 @@ class Coordinator:
 
         # Add update to queue, and start new epoch if enough updates have been received
         self.updates.append(weights)
+        print(
+            "len(self.updates) > self.quorum_pct * len(self.workers)?",
+            len(self.updates),
+            self.quorum_pct,
+            len(self.workers),
+            self.quorum_pct * len(self.workers),
+        )
         if len(self.updates) > self.quorum_pct * len(self.workers):
+            print("Coordinator starting new epoch")
             self.start_new_epoch()
 
         return "Ok"

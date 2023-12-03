@@ -136,7 +136,8 @@ class Worker:
         Returns the new weights for the model as nested list
         """
 
-        print("Training with data", self.data)
+        # print("Training with data", self.data)
+        print("Training ...")
         loss_history = []
         start = time.time()
         for epoch in range(self.epochs):
@@ -187,7 +188,7 @@ class Worker:
             # Train on local data and push contribution
             try:
                 new_weights = self.train()
-                status = self.coordinator.update(new_weights)
+                status = self.coordinator.load_update(new_weights)
                 if status != "Ok":
                     print(f"Coordinator could not use update: {status}")
                     break
