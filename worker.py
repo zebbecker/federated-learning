@@ -202,6 +202,9 @@ class Worker:
 def main():
 
     print(f"Running on {device}")
+    if len(sys.argv) != 3:
+        print("Usage: python worker.py coordinator_ip:port worker_ip")
+        sys.exit(1)
     
     # Get hostname from command line "http://<hostname>:<port>"
     name = sys.argv[1]
