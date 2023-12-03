@@ -101,9 +101,11 @@ class Coordinator:
     def start_new_epoch(self):
         """Update global weights and start new epoch"""
         
-        # Merge updates into global weights
-        updates = np.array(self.updates)
-        self.weights = np.mean(updates, axis=0)
+        # Merge updates into global weights, average across list of tensors
+        for i in range(len(self.weights)):
+            tensor_stack = torch.stack([update[i] for update in self.updates])
+            self.weights[i] = torch.mean(tensor_stack, dim=0)
+        
 
         # Notify workers of new epoch
         for worker in self.workers.values():
