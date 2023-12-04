@@ -147,11 +147,11 @@ class Worker:
             for batch in self.train_dl:
                 x, y = batch
                 x, y = x.to(device), y.to(device)
-                batch_loss = self.train_batch(x, y)
-                epoch_losses.append(batch_loss)
+            #     batch_loss = self.train_batch(x, y)
+            #     epoch_losses.append(batch_loss)
 
-            epoch_loss = np.mean(epoch_losses)
-            loss_history.append(epoch_loss)
+            # epoch_loss = np.mean(epoch_losses)
+            # loss_history.append(epoch_loss)
 
         end = time.time()
         training_time = end - start
@@ -164,6 +164,7 @@ class Worker:
 
     def receive_notification(self):
         self.update_ready = True
+        return "Received Update"
 
     def ping(self):
         return "pong"
@@ -191,6 +192,7 @@ class Worker:
 
             # Train on local data and push contribution
             try:
+                print(f"Training for Global Epoch: {self.global_epoch}")
                 new_weights = self.train()
                 status = self.coordinator.load_update(new_weights)
                 if status != "Ok":
@@ -210,15 +212,19 @@ class Worker:
 
 def main():
     print(f"Running on {device}")
-    if len(sys.argv) != 3:
-        print("Usage: python worker.py coordinator_ip:port worker_ip")
-        sys.exit(1)
+    # if len(sys.argv) != 3:
+    #     print("Usage: python worker.py coordinator_ip:port worker_ip")
+    #     sys.exit(1)
 
     # Get hostname from command line "http://<hostname>:<port>"
-    name = sys.argv[1]
-    coordinator_hostname = "http://" + name
+    # name = sys.argv[1]
+    # coordinator_hostname = "http://" + name
 
-    worker_ip = sys.argv[2]
+    # worker_ip = sys.argv[2]
+
+    # For debugging
+    coordinator_hostname = "http://139.140.197.180:8082"
+    worker_ip = "hopper.bowdoin.edu"
     worker = Worker(worker_ip)
 
     try:
