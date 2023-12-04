@@ -84,6 +84,7 @@ class Worker:
 
         # Start up worker server in seperate thread
         self.server.register_function(self.receive_notification, "notify")
+        self.server.register_function(self.ping, "ping")
         server_thread = threading.Thread(target=self.server.serve_forever)
         server_thread.start()
         print("Started worker server in seperate thread")
@@ -163,6 +164,9 @@ class Worker:
 
     def receive_notification(self):
         self.update_ready = True
+
+    def ping(self):
+        return "pong"
 
     def wait_for_notification(self):
         # Wait for server thread to register an update

@@ -32,8 +32,8 @@ declares a new epoch.
 
 """
 
-COORDINATOR_IP = "139.140.215.220"
-PORT = 8081
+COORDINATOR_IP = "139.140.197.180"
+PORT = 8082
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
 
@@ -78,7 +78,13 @@ class Coordinator:
         includes model architecture and hyperparameters.
         """
         print("Accepting connection on coordinator from " + hostname)
-        self.workers[hostname] = ServerProxy(hostname)
+        worker = ServerProxy(hostname)
+        self.workers[hostname] = worker
+        try:
+            worker.ping()
+        except Exception as e:
+            print("Error pinging worker")
+            return "Error: Worker not responding"
         return "connected!"
 
     def send_update(self):
@@ -111,14 +117,17 @@ class Coordinator:
     def start_new_epoch(self):
         """Update global weights and start new epoch"""
 
-        # Merge updates into global weights
-        updates = np.array(self.updates)
-        self.weights = np.mean(updates, axis=0)
+        # Merge updates into global weights, average across list of tensors
+        for i in range(len(self.weights)):
+            tensor_stack = torch.stack([update[i] for update in self.updates])
+            self.weights[i] = torch.mean(tensor_stack, dim=0)
 
         # Notify workers of new epoch
         for worker in self.workers.values():
-            worker.notify()
-
+            try:
+                worker.notify()
+            except Exception as e:
+                print("Error notifying worker of new epoch")
         # Reset updates and increment epoch
         self.updates = []
         self.epoch += 1
