@@ -36,7 +36,7 @@ COORDINATOR_IP = "139.140.197.180"
 PORT = 8082
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
-
+WORKER_STARTING_EPOCHS = 4
 
 def is_equal_dimensions(l1, l2):
     """Helper to compare two lists of tensors"""
@@ -53,6 +53,24 @@ def is_equal_dimensions(l1, l2):
     return True
 
 
+class WorkerInfo:
+    """Class to hold info about each worker"""
+
+    def __init__(self, hostname, num_epochs=WORKER_STARTING_EPOCHS):
+        self.server = ServerProxy(hostname)
+        self.num_epochs = num_epochs
+        self.last_push = -1
+        self.last_pull = -1
+
+    def ping(self):
+        """Ping worker to check connection"""
+        return self.server.ping()
+
+    def notify(self):
+        """Notify worker that update is ready"""
+        return self.server.notify()
+
+
 class Coordinator:
     def __init__(self, quorum_percentage=0.8, max_epochs=10):
         # Initialize weights using worker_model spec, list of tensors
@@ -64,6 +82,7 @@ class Coordinator:
             (COORDINATOR_IP, PORT), requestHandler=SimpleXMLRPCRequestHandler
         )
 
+        # State for workers, updates, and training
         self.workers = {}
         self.updates = []
         self.quorum_pct = quorum_percentage
@@ -78,7 +97,7 @@ class Coordinator:
         includes model architecture and hyperparameters.
         """
         print("Accepting connection on coordinator from " + hostname)
-        worker = ServerProxy(hostname)
+        worker = WorkerInfo(hostname)
         self.workers[hostname] = worker
         try:
             worker.ping()
@@ -87,11 +106,13 @@ class Coordinator:
             return "Error: Worker not responding"
         return "connected!"
 
-    def send_update(self):
+    def send_update(self, hostname):
         """Send update to worker upon request"""
-        return [tensor.tolist() for tensor in self.weights], self.epoch
+        self.workers[hostname].last_pull = self.epoch
+        raw_weights = [tensor.tolist() for tensor in self.weights]
+        return raw_weights, self.epoch, self.workers[hostname].num_epochs
 
-    def receive_update(self, weights):
+    def receive_update(self, hostname, weights):
         """Receive update from worker"""
 
         # Check that weights are the correct shape
@@ -99,15 +120,12 @@ class Coordinator:
         if not is_equal_dimensions(weights, self.weights):
             return "Error: Incorrect shape for weights"
 
-        # Add update to queue, and start new epoch if enough updates have been received
+        # Add update to queue, and update worker state
         self.updates.append(weights)
-        print(
-            "len(self.updates) > self.quorum_pct * len(self.workers)?",
-            len(self.updates),
-            self.quorum_pct,
-            len(self.workers),
-            self.quorum_pct * len(self.workers),
-        )
+        self.workers[hostname].last_push = self.epoch
+        self.workers[hostname].num_epochs += 1  # Assign more work if finished early
+       
+        # Start new epoch if enough updates have been received
         if len(self.updates) > self.quorum_pct * len(self.workers):
             print("Coordinator starting new epoch")
             self.start_new_epoch()
@@ -128,10 +146,20 @@ class Coordinator:
                 worker.notify()
             except Exception as e:
                 print("Error notifying worker of new epoch")
+
+            # If worker never even responded to the notification, remove it
+            if worker.last_pull != self.epoch:
+                del self.workers[worker]
+
+            # If worker never updated, decrease work load
+            if worker.last_push != self.epoch:
+                worker.num_epochs = max(1, worker.num_epochs // 2)
+
         # Reset updates and increment epoch
         self.updates = []
         self.epoch += 1
 
+        # Shutdown server if we've reached max epochs
         if self.epoch > self.max_epochs:
             self.server.shutdown()  # Not sure if this is the right way to do this
             print("Training complete")

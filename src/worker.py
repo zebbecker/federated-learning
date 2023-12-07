@@ -37,14 +37,13 @@ PORT = 8082
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
 
-EPOCHS_PER_UPDATE = 1
-
 # Check if GPU is available, and use if possible, data is sent to "device" later
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class Worker:
     def __init__(self, ip_address):
+        
         # Set up RPC server to receive notifications
         self.hostname = (
             "http://" + ip_address + ":" + str(PORT)
@@ -58,7 +57,7 @@ class Worker:
         self.model = None
         self.optimizer = None
         self.loss = None
-        self.epochs = EPOCHS_PER_UPDATE
+        self.epochs = 0
         self.global_epoch = 0
 
         # Set up data using PyTorch DataLoaders
@@ -145,8 +144,14 @@ class Worker:
             print(f"Running Epoch {epoch + 1} of {self.epochs}")
             epoch_losses = []
             for batch in self.train_dl:
-                x, y = batch
-                x, y = x.to(device), y.to(device)
+
+                # Check if coordinator has sent an update
+                if self.update_ready:
+                    return None
+
+                # Train a batch
+                # x, y = batch
+                # x, y = x.to(device), y.to(device)
             #     batch_loss = self.train_batch(x, y)
             #     epoch_losses.append(batch_loss)
 
@@ -183,9 +188,10 @@ class Worker:
         while True:
             # Get caught up to date with coordinator
             try:
-                update, epoch = self.coordinator.get_update()
+                update, epoch, num_epochs = self.coordinator.get_update(self.hostname)
                 self.update_weights(update)
                 self.global_epoch = epoch
+                self.epochs = num_epochs
             except Exception as e:
                 print(f"Problem while updating: {e}")
                 break
@@ -194,12 +200,14 @@ class Worker:
             try:
                 print(f"Training for Global Epoch: {self.global_epoch}")
                 new_weights = self.train()
-                status = self.coordinator.load_update(new_weights)
-                if status != "Ok":
-                    print(f"Coordinator could not use update: {status}")
-                    break
+                if not new_weights:
+                    print("Training interrupted by update")
+                else:
+                    status = self.coordinator.load_update(new_weights)
+                    if status != "Ok":
+                        print(f"Coordinator could not use update: {status}")
+                        break
                 self.wait_for_notification()
-
             except Exception as e:
                 print(f"Problem while training: {e}")
                 break
