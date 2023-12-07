@@ -115,6 +115,10 @@ class Coordinator:
     def receive_update(self, hostname, weights):
         """Receive update from worker"""
 
+        # Check that worker is registered
+        if hostname not in self.workers:
+            return "Error: Worker not registered"
+
         # Check that weights are the correct shape
         weights = [torch.FloatTensor(element) for element in weights]
         if not is_equal_dimensions(weights, self.weights):
