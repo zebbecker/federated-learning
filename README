@@ -1,1 +1,13 @@
-To run: deploy.sh to push updated code, start.sh to start up 
+For testing: 15.156.205.154 will act as coordinator (arbitrary, just copy coordinator.py to whichever machine you want). Workers will serve from port 8082 by default. 
+If you change parameters in any file, remember to push updates using the deploy script. 
+To test on a small subset of machines, `use serverlist.txt`. To test on all machines, use `fullserverlist.txt`
+
+To deploy: 
+- from scripts folder on laptop, `./deploy.sh`
+
+To start: 
+- `ssh -i [your private key] [username]@15.156.205.154` <- use this window to monitor coordinator output
+- from scripts folder on laptop, `./start.sh`
+
+To shutdown: 
+- from scripts folder on laptop, `./shutdown.sh`
