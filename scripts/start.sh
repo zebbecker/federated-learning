@@ -3,12 +3,12 @@
 
 function start_server() 
 {
-  ssh -i ~/.ssh/zbecker2-keypair.pem zbecker2@$1 'python3 worker.py &'
+  ssh -i ~/.ssh/$(whoami)-keypair.pem $(whoami)@$1 'python3 worker.py &'
 }
 
 echo ">>> Starting workers."
 
-for server in $(cat serverlist.txt)
+for server in $(cat ../serverlist.txt)
 do 
   start_server ${server} &
 done  
