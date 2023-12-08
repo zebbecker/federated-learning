@@ -38,12 +38,16 @@ BATCH_SIZE = 128
 LEARNING_RATE = 0.001
 
 # Check if GPU is available, and use if possible, data is sent to "device" later
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
+
+"""
+Usage: python3 worker.py coordinator_ip:port worker_ip
+"""
 
 
 class Worker:
     def __init__(self, ip_address, coordinator_hostname):
-        
         # Set up RPC server to receive notifications
         self.hostname = (
             "http://" + ip_address + ":" + str(PORT)
@@ -145,7 +149,6 @@ class Worker:
             print(f"Running Epoch {epoch + 1} of {self.epochs}")
             epoch_losses = []
             for batch in self.train_dl:
-
                 # Check if coordinator has sent an update
                 if self.update_ready:
                     return None
@@ -223,19 +226,20 @@ class Worker:
 
 def main():
     print(f"Running on {device}")
-    # if len(sys.argv) != 3:
-    #     print("Usage: python worker.py coordinator_ip:port worker_ip")
-    #     sys.exit(1)
+    if len(sys.argv) != 3:
+        print("Usage: python worker.py coordinator_ip:port worker_ip")
+        sys.exit(1)
 
     # Get hostname from command line "http://<hostname>:<port>"
-    # name = sys.argv[1]
-    # coordinator_hostname = "http://" + name
+    name = sys.argv[1]
+    coordinator_hostname = "http://" + name
 
-    # worker_ip = sys.argv[2]
+    worker_ip = sys.argv[2]
 
     # For debugging
-    coordinator_hostname = "http://139.140.197.180:8082"
-    worker_ip = "hopper.bowdoin.edu"
+    # coordinator_hostname = "http://139.140.197.180:8082"
+    # worker_ip = "hopper.bowdoin.edu"
+
     worker = Worker(worker_ip, coordinator_hostname)
 
     try:

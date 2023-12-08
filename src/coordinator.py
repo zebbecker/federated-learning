@@ -32,11 +32,13 @@ declares a new epoch.
 
 """
 
-COORDINATOR_IP = "139.140.197.180"
+# COORDINATOR_IP = "139.140.197.180"
+COORDINATOR_IP = "hopper.bowdoin.edu"
 PORT = 8082
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
 WORKER_STARTING_EPOCHS = 4
+
 
 def is_equal_dimensions(l1, l2):
     """Helper to compare two lists of tensors"""
@@ -128,7 +130,7 @@ class Coordinator:
         self.updates.append(weights)
         self.workers[hostname].last_push = self.epoch
         self.workers[hostname].num_epochs += 1  # Assign more work if finished early
-       
+
         # Start new epoch if enough updates have been received
         if len(self.updates) > self.quorum_pct * len(self.workers):
             print("Coordinator starting new epoch")
