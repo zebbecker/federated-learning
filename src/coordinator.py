@@ -6,6 +6,8 @@ import torch
 
 import worker_model
 
+QUORUM_PERCENTAGE = 0.75
+
 """
 Idea here is that server calls setup() to initialize model, and from there
 out is primarily driven by workers making calls it its methods. 
@@ -32,8 +34,9 @@ declares a new epoch.
 
 """
 
+COORDINATOR_IP = "139.140.215.220"  # Zeb
 # COORDINATOR_IP = "139.140.197.180"
-COORDINATOR_IP = "hopper.bowdoin.edu"
+# COORDINATOR_IP = "hopper.bowdoin.edu"
 PORT = 8082
 # <- pass in as command line parameter: number of workers for quorum.
 # Should be less than total number of workers to allow for fault tolerance
@@ -74,7 +77,7 @@ class WorkerInfo:
 
 
 class Coordinator:
-    def __init__(self, quorum_percentage=0.8, max_epochs=10):
+    def __init__(self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=10):
         # Initialize weights using worker_model spec, list of tensors
         model = worker_model.model
         self.weights = [param.data for param in model.parameters()]
