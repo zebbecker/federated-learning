@@ -37,14 +37,13 @@ PORT = 8082
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
 
-EPOCHS_PER_UPDATE = 1
-
 # Check if GPU is available, and use if possible, data is sent to "device" later
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class Worker:
-    def __init__(self, ip_address):
+    def __init__(self, ip_address, coordinator_hostname):
+        
         # Set up RPC server to receive notifications
         self.hostname = (
             "http://" + ip_address + ":" + str(PORT)
@@ -54,11 +53,12 @@ class Worker:
 
         # Coordinator and Model Stuff
         # Filled in by connect with info from coordinator
+        self.coordinator_hostname = coordinator_hostname
         self.coordinator = None
         self.model = None
         self.optimizer = None
         self.loss = None
-        self.epochs = EPOCHS_PER_UPDATE
+        self.epochs = 0
         self.global_epoch = 0
 
         # Set up data using PyTorch DataLoaders
@@ -77,10 +77,10 @@ class Worker:
         self.train_dl = DataLoader(mnist_train, batch_size=BATCH_SIZE, shuffle=True)
         self.test_dl = DataLoader(mnist_test, batch_size=BATCH_SIZE, shuffle=True)
 
-    def connect(self, coordinator_hostname):
+    def connect(self):
         """Establish connection to coordinator"""
 
-        print("Worker attemping to connect to " + coordinator_hostname)
+        print("Worker attemping to connect to " + self.coordinator_hostname)
 
         # Start up worker server in seperate thread
         self.server.register_function(self.receive_notification, "notify")
@@ -91,13 +91,13 @@ class Worker:
 
         # Connect to host and greet with intro message
         # self.coordinator = xmlrpc.client.ServerProxy(self.hostname)
-        self.coordinator = xmlrpc.client.ServerProxy(coordinator_hostname)
+        self.coordinator = xmlrpc.client.ServerProxy(self.coordinator_hostname)
 
         try:
             self.coordinator.connect(self.hostname)
-            print("Connected to", coordinator_hostname)
+            print("Connected to", self.coordinator_hostname)
         except Exception as e:
-            print("Error: Unable to connect to", coordinator_hostname)
+            print("Error: Unable to connect to", self.coordinator_hostname)
             raise e
 
         # Initialize model as it is defined in worker_model.py
@@ -145,8 +145,14 @@ class Worker:
             print(f"Running Epoch {epoch + 1} of {self.epochs}")
             epoch_losses = []
             for batch in self.train_dl:
-                x, y = batch
-                x, y = x.to(device), y.to(device)
+
+                # Check if coordinator has sent an update
+                if self.update_ready:
+                    return None
+
+                # Train a batch
+                # x, y = batch
+                # x, y = x.to(device), y.to(device)
             #     batch_loss = self.train_batch(x, y)
             #     epoch_losses.append(batch_loss)
 
@@ -183,9 +189,10 @@ class Worker:
         while True:
             # Get caught up to date with coordinator
             try:
-                update, epoch = self.coordinator.get_update()
+                update, epoch, num_epochs = self.coordinator.get_update(self.hostname)
                 self.update_weights(update)
                 self.global_epoch = epoch
+                self.epochs = num_epochs
             except Exception as e:
                 print(f"Problem while updating: {e}")
                 break
@@ -194,12 +201,16 @@ class Worker:
             try:
                 print(f"Training for Global Epoch: {self.global_epoch}")
                 new_weights = self.train()
-                status = self.coordinator.load_update(new_weights)
-                if status != "Ok":
-                    print(f"Coordinator could not use update: {status}")
-                    break
+                if not new_weights:
+                    print("Training interrupted by update")
+                else:
+                    status = self.coordinator.load_update(self.hostname, new_weights)
+                    if status == "Error: Worker not registered":
+                        self.connect(self.coordinator_hostname)
+                    if status != "Ok":
+                        print(f"Coordinator could not use update: {status}")
+                        break
                 self.wait_for_notification()
-
             except Exception as e:
                 print(f"Problem while training: {e}")
                 break
@@ -225,10 +236,10 @@ def main():
     # For debugging
     coordinator_hostname = "http://139.140.197.180:8082"
     worker_ip = "hopper.bowdoin.edu"
-    worker = Worker(worker_ip)
+    worker = Worker(worker_ip, coordinator_hostname)
 
     try:
-        worker.connect(coordinator_hostname)
+        worker.connect()
     except ConnectionRefusedError as e:
         print(f"Couldn't Connect: {e}")
 
