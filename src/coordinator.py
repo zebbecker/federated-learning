@@ -6,40 +6,15 @@ import torch
 
 import worker_model
 
+# Usage: python3 coordinator.py
+# (set QP, coordinator IP, and port number in script below)
+
+# @TODO add output if we are unable to achieve quorum percentage.
 QUORUM_PERCENTAGE = 0.75
 
-"""
-Idea here is that server calls setup() to initialize model, and from there
-out is primarily driven by workers making calls it its methods. 
-
-When a certain threshold of updates have been recieved (we should play around
-with how we define the threshold), the next worker that calls get_task will trigger 
-the end of the current epoch. The coordinator will update the global model weights 
-and declare a new epoch. 
-
-In this design, the worker essentially loops. 
-First, it calls server.get_task(worker_epoch), where worker_epoch is the ID of the 
-most recent epoch the worker has finished training for. If worker just finished 
-its epoch 3 task and the coordinator has not yet moved on the epoch 4, this will 
-return some sort of null value. The worker should wait for some amount of time 
-and try again later. Eventually, the worker will recieve a new set of weights with 
-the next epoch ID. 
-
-When it does, the worker will train, then call server.load_update(). 
-This will send the weights and epoch id to the coordinator. If the coordinator
-has already moved on from that epoch (i.e. this worker is a straggler), the weights 
-will be discarded. Otherwise, they will be added to the update queue. If they are and
-this worker pushes us across the threshold for starting a new epoch, the coordinator 
-declares a new epoch. 
-
-"""
-
-COORDINATOR_IP = "139.140.215.220"  # Zeb
-# COORDINATOR_IP = "139.140.197.180"
-# COORDINATOR_IP = "hopper.bowdoin.edu"
+COORDINATOR_IP = "hopper.bowdoin.edu"
 PORT = 8082
-# <- pass in as command line parameter: number of workers for quorum.
-# Should be less than total number of workers to allow for fault tolerance
+
 WORKER_STARTING_EPOCHS = 4
 
 
@@ -66,6 +41,7 @@ class WorkerInfo:
         self.num_epochs = num_epochs
         self.last_push = -1
         self.last_pull = -1
+        self.hostname = hostname
 
     def ping(self):
         """Ping worker to check connection"""
@@ -76,6 +52,7 @@ class WorkerInfo:
         return self.server.notify()
 
 
+# @TODO when we reach max epochs, print something or shutdown gracefully- currently just hangs
 class Coordinator:
     def __init__(self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=10):
         # Initialize weights using worker_model spec, list of tensors
@@ -95,13 +72,18 @@ class Coordinator:
         self.max_epochs = max_epochs
 
     def accept_connection(self, hostname):
-        """First call from worker, used to register worker with coordinator
-
-        Allows worker to get set up with same structure as coordinator. Model
-        spec format is TBD, but should probably be a dict of some sort that
-        includes model architecture and hyperparameters.
         """
-        print("Accepting connection on coordinator from " + hostname)
+        This is the first method that a new worker should call.
+
+        Registers worker with coordinator, storing a WorkerInfo object in the
+        workers dictionary with the IP address of the worker as the key.
+
+        The WorkerInfo object establishes a ServerProxy connection to the worker,
+        allowing the coordinator to ping it and ensure a functional two way connection.
+        """
+
+        print("[FROM " + hostname + "] Accepting new connection")
+        print("Accepting new connection on coordinator from " + hostname)
         worker = WorkerInfo(hostname)
         self.workers[hostname] = worker
         try:
@@ -112,7 +94,10 @@ class Coordinator:
         return "connected!"
 
     def send_update(self, hostname):
-        """Send update to worker upon request"""
+        """
+        Send updated model weights, current epoch, and number of
+        assigned local epochs to worker upon request
+        """
         self.workers[hostname].last_pull = self.epoch
         raw_weights = [tensor.tolist() for tensor in self.weights]
         return raw_weights, self.epoch, self.workers[hostname].num_epochs
@@ -132,11 +117,37 @@ class Coordinator:
         # Add update to queue, and update worker state
         self.updates.append(weights)
         self.workers[hostname].last_push = self.epoch
+
+        # @TODO improve load balancing. If no workers are excluded by the quorum protocol, this will continue
+        # incrementing for each epoch
         self.workers[hostname].num_epochs += 1  # Assign more work if finished early
+
+        print(
+            "[FROM:"
+            + hostname
+            + "] Recieved updated weights for epoch "
+            + self.workers[hostname].last_push
+        )
+
+        print(
+            len(self.updates)
+            + " of "
+            + len(self.workers)
+            + " recieved. Current response rate: "
+            + (len(self.updates) / len(self.workers))
+        )
 
         # Start new epoch if enough updates have been received
         if len(self.updates) > self.quorum_pct * len(self.workers):
-            print("Coordinator starting new epoch")
+            print(
+                "Quorum achieved - ending epoch "
+                + str(self.epoch)
+                + " with "
+                + str(len(self.updates))
+                + " updates from "
+                + str(len(self.workers))
+                + " workers."
+            )
             self.start_new_epoch()
 
         return "Ok"
@@ -147,14 +158,21 @@ class Coordinator:
         # Merge updates into global weights, average across list of tensors
         for i in range(len(self.weights)):
             tensor_stack = torch.stack([update[i] for update in self.updates])
+            # @TODO implement weighted means: workers with more data should count more
             self.weights[i] = torch.mean(tensor_stack, dim=0)
+
+        print(
+            "\nStarting "
+            + (self.epoch + 1)
+            + ". Sending updated weights and tasks to all workers."
+        )
 
         # Notify workers of new epoch
         for worker in self.workers.values():
             try:
                 worker.notify()
             except Exception as e:
-                print("Error notifying worker of new epoch")
+                print("Error notifying " + worker.hostname + " of new epoch")
 
             # If worker never even responded to the notification, remove it
             if worker.last_pull != self.epoch:
@@ -168,11 +186,12 @@ class Coordinator:
         self.updates = []
         self.epoch += 1
 
+        # @TODO
         # Shutdown server if we've reached max epochs
         if self.epoch > self.max_epochs:
-            self.server.shutdown()  # Not sure if this is the right way to do this
             print("Training complete")
             print("Final weights: ", self.weights)
+            self.server.shutdown()  # Not sure if this is the right way to do this
 
     def handle_disconnect(self, hostname):
         """Remove worker from list of active workers"""
@@ -184,7 +203,7 @@ class Coordinator:
         self.server.register_function(self.send_update, "get_update")
         self.server.register_function(self.receive_update, "load_update")
         self.server.register_function(self.handle_disconnect, "disconnect")
-        print("Coordinator serving at http://" + COORDINATOR_IP + "/" + str(PORT))
+        print("Coordinator serving at http://" + COORDINATOR_IP + ":" + str(PORT))
         self.server.serve_forever()
 
 
