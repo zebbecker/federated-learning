@@ -61,7 +61,9 @@ class Coordinator:
 
         # Set up RPC server
         self.server = SimpleXMLRPCServer(
-            (COORDINATOR_IP, PORT), requestHandler=SimpleXMLRPCRequestHandler
+            (COORDINATOR_IP, PORT),
+            requestHandler=SimpleXMLRPCRequestHandler,
+            logRequests=False,
         )
 
         # State for workers, updates, and training
@@ -83,7 +85,7 @@ class Coordinator:
         """
 
         print("[FROM " + hostname + "] Accepting new connection")
-        print("Accepting new connection on coordinator from " + hostname)
+        # print("Accepting new connection on coordinator from " + hostname)
         worker = WorkerInfo(hostname)
         self.workers[hostname] = worker
         try:
@@ -126,15 +128,15 @@ class Coordinator:
             "[FROM:"
             + hostname
             + "] Recieved updated weights for epoch "
-            + self.workers[hostname].last_push
+            + str(self.workers[hostname].last_push)
         )
 
         print(
-            len(self.updates)
+            str(len(self.updates))
             + " of "
-            + len(self.workers)
+            + str(len(self.workers))
             + " recieved. Current response rate: "
-            + (len(self.updates) / len(self.workers))
+            + str(len(self.updates) / len(self.workers))
         )
 
         # Start new epoch if enough updates have been received
@@ -163,7 +165,7 @@ class Coordinator:
 
         print(
             "\nStarting "
-            + (self.epoch + 1)
+            + str(self.epoch + 1)
             + ". Sending updated weights and tasks to all workers."
         )
 
