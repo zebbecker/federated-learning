@@ -46,13 +46,21 @@ Usage: python3 worker.py coordinator_ip:port worker_ip
 """
 
 
+class SimpleWorkerServer(SimpleXMLRPCServer):
+
+    def serve_forever(self):
+        self.quit = False
+        while not self.quit:
+            self.handle_request()
+
+
 class Worker:
     def __init__(self, ip_address, coordinator_hostname):
         # Set up RPC server to receive notifications
         self.hostname = (
             "http://" + ip_address + ":" + str(PORT)
         )  # address that worker server is serving on
-        self.server = SimpleXMLRPCServer((ip_address, PORT))  # worker server
+        self.server = SimpleWorkerServer((ip_address, PORT))  # worker server
         self.update_ready = False
         self.active = True
 
@@ -226,8 +234,9 @@ class Worker:
 
         # Clean up worker server - allows thread to complete
         self.coordinator.disconnect(self.hostname)
-        self.server.shutdown()
-        self.server.server_close()
+        # self.server.shutdown()
+        # self.server.server_close()
+        self.server.quit = True
 
 
 def main():
