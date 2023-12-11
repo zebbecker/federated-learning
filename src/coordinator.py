@@ -51,6 +51,10 @@ class WorkerInfo:
         """Notify worker that update is ready"""
         return self.server.notify()
 
+    def shutdown(self):
+        """Notify worker that global training is complete and it should terminate."""
+        return self.server.shutdown()
+
 
 # @TODO when we reach max epochs, print something or shutdown gracefully- currently just hangs
 class Coordinator:
@@ -163,8 +167,22 @@ class Coordinator:
             # @TODO implement weighted means: workers with more data should count more
             self.weights[i] = torch.mean(tensor_stack, dim=0)
 
+        if self.epoch >= self.max_epochs:
+            # Shutdown server if we've reached max epochs
+            print("Training complete")
+            print("Final weights: ", self.weights)
+
+            for worker in self.workers.values():
+                try:
+                    worker.shutdown()
+                except Exception as e:
+                    print("Error shutting down " + worker.hostname)
+
+            self.server.shutdown()  # Not sure if this is the right way to do this
+            return
+
         print(
-            "\nStarting "
+            "\nStarting epoch "
             + str(self.epoch + 1)
             + ". Sending updated weights and tasks to all workers."
         )
@@ -187,13 +205,6 @@ class Coordinator:
         # Reset updates and increment epoch
         self.updates = []
         self.epoch += 1
-
-        # @TODO
-        # Shutdown server if we've reached max epochs
-        if self.epoch > self.max_epochs:
-            print("Training complete")
-            print("Final weights: ", self.weights)
-            self.server.shutdown()  # Not sure if this is the right way to do this
 
     def handle_disconnect(self, hostname):
         """Remove worker from list of active workers"""

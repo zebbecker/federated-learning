@@ -54,6 +54,7 @@ class Worker:
         )  # address that worker server is serving on
         self.server = SimpleXMLRPCServer((ip_address, PORT))  # worker server
         self.update_ready = False
+        self.active = True
 
         # Coordinator and Model Stuff
         # Filled in by connect with info from coordinator
@@ -89,6 +90,7 @@ class Worker:
         # Start up worker server in seperate thread
         self.server.register_function(self.receive_notification, "notify")
         self.server.register_function(self.ping, "ping")
+        self.server.register_function(self.shutdown, "shutdown")
         server_thread = threading.Thread(target=self.server.serve_forever)
         server_thread.start()
         print("Started worker server in seperate thread")
@@ -178,6 +180,10 @@ class Worker:
     def ping(self):
         return "pong"
 
+    def shutdown(self):
+        self.active = False
+        return "shutdown"
+
     def wait_for_notification(self):
         # Wait for server thread to register an update
         while not self.update_ready:
@@ -188,8 +194,8 @@ class Worker:
 
     def work(self):
         """Main loop for working with coordinator"""
-
-        while True:
+        self.active = True  # made false by shutdown method
+        while self.active:
             # Get caught up to date with coordinator
             try:
                 update, epoch, num_epochs = self.coordinator.get_update(self.hostname)
@@ -248,7 +254,7 @@ def main():
         print(f"Couldn't Connect: {e}")
 
     worker.work()
-    print("Finished working")
+    print("Training complete. Shutting down.")
 
 
 if __name__ == "__main__":
