@@ -3,6 +3,7 @@ from xmlrpc.client import ServerProxy
 
 import numpy as np
 import torch
+import time
 
 import worker_model
 
@@ -13,6 +14,7 @@ import worker_model
 QUORUM_PERCENTAGE = 0.75
 
 COORDINATOR_IP = "hopper.bowdoin.edu"
+# COORDINATOR_IP = "139.140.215.220"
 PORT = 8082
 
 WORKER_STARTING_EPOCHS = 4
@@ -76,6 +78,11 @@ class Coordinator:
         self.quorum_pct = quorum_percentage
         self.epoch = 0
         self.max_epochs = max_epochs
+
+        # Record accuracy score on test task after each global epoch. Stored as (epoch, score) tuples
+        self.accuracy = []
+        self.epoch_start_time = time.time()
+        self.epoch_end_time = time.time()
 
     def accept_connection(self, hostname):
         """
@@ -154,6 +161,12 @@ class Coordinator:
                 + str(len(self.workers))
                 + " workers."
             )
+            self.epoch_end_time = time.time()
+            print(
+                "Epoch completed in "
+                + str(self.epoch_end_time - self.epoch_start_time)
+                + " seconds."
+            )
             self.start_new_epoch()
 
         return "Ok"
@@ -167,10 +180,14 @@ class Coordinator:
             # @TODO implement weighted means: workers with more data should count more
             self.weights[i] = torch.mean(tensor_stack, dim=0)
 
+        # @TODO test and log accuracy for each epoch here
+        self.accuracy.append((self.epoch, None))  # <- put actual value in here
+
         if self.epoch >= self.max_epochs:
             # Shutdown server if we've reached max epochs
             print("Training complete")
-            print("Final weights: ", self.weights)
+            # print("Final weights: ", self.weights)
+            print("Accuracies per epoch: ", self.accuracy)
 
             for worker in self.workers.values():
                 try:
@@ -187,6 +204,7 @@ class Coordinator:
             + ". Sending updated weights and tasks to all workers."
         )
 
+        self.epoch_start_time = time.time()
         # Notify workers of new epoch
         for worker in self.workers.values():
             try:
