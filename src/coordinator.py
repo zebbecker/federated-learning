@@ -49,17 +49,10 @@ class WorkerInfo:
         self.hostname = hostname
         self.data_size = data_size
 
-    def ping(self):
-        """Ping worker to check connection"""
-        return self.server.ping()
+    def notify(self, notification):
+        """Notify worker with some message"""
+        return self.server.notify(notification)
 
-    def notify(self):
-        """Notify worker that update is ready"""
-        return self.server.notify()
-
-    def shutdown(self):
-        """Notify worker that global training is complete and it should terminate."""
-        return self.server.shutdown()
 
 
 class SimpleCoordinatorServer(SimpleXMLRPCServer):
@@ -116,7 +109,7 @@ class Coordinator:
         try:
             worker.notify("Ping")
         except Exception as e:
-            print("Error pinging worker")
+            print(f"Error pinging worker: {e}")
         
         # Let worker know if they should report test resuts
         return self.testing
@@ -146,7 +139,7 @@ class Coordinator:
         self.updates[hostname] = weights
         self.workers[hostname].last_push = self.epoch
         if accuracy:
-            self.accuracies[hostname] = accuracy
+            self.epoch_accuracies[hostname] = accuracy
 
         # @TODO improve load balancing. If no workers are excluded by the quorum protocol, this will continue
         # incrementing for each epoch
@@ -195,7 +188,7 @@ class Coordinator:
         # If accuracies were requested, merge them and output
         if self.testing:
             weighted_accuracy = 0
-            for host, accuracy in self.accuracies.items():
+            for host, accuracy in self.epoch_accuracies.items():
                 weighted_accuracy += accuracy * (self.workers[host].data_size / total_data)
             self.accuracies.append(weighted_accuracy)
             print(f"Epoch Accuracy: {weighted_accuracy}")
@@ -234,7 +227,7 @@ class Coordinator:
 
         # Reset updates and increment epoch
         self.updates = {}
-        self.accuracies = {}
+        self.epoch_accuracies = {}
         self.epoch += 1
 
     def handle_disconnect(self, hostname):
@@ -252,7 +245,7 @@ class Coordinator:
 
 
 def main():
-    coordinator = Coordinator()
+    coordinator = Coordinator(testing=True)
     coordinator.run()
 
 
