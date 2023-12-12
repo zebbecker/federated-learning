@@ -57,6 +57,7 @@ class SimpleWorkerServer(SimpleXMLRPCServer):
 class Worker:
     def __init__(self, ip_address, coordinator_hostname):
         # Set up RPC server to receive notifications
+        self.ip_address = ip_address
         self.hostname = (
             "http://" + ip_address + ":" + str(PORT)
         )  # Public IP address that the coordinator should use to connect
@@ -97,24 +98,30 @@ class Worker:
 
     def connect(self):
         """Establish connection to coordinator"""
-        # @TODO we need to make sure that we pass in the public IP here, even if we said that the coordinator is running on the private IP
-        print("Worker attemping to connect to " + self.coordinator_hostname)
+        print(
+            "["
+            + self.ip_address
+            + "] Worker attemping to connect to "
+            + self.coordinator_hostname
+        )
 
         # Start up worker server in seperate thread
         self.server.register_function(self.receive_notification, "notify")
         server_thread = threading.Thread(target=self.server.serve_forever)
         server_thread.start()
-        print("Started worker server in seperate thread")
+        print("[" + self.ip_address + "] Started worker server in seperate thread")
 
         # Connect to host and greet with intro message
-        # self.coordinator = xmlrpc.client.ServerProxy(self.hostname)
         self.coordinator = xmlrpc.client.ServerProxy(self.coordinator_hostname)
 
         try:
             self.testing = self.coordinator.connect(self.hostname, len(self.train_dl))
-            print("Connected to", self.coordinator_hostname)
+            print("[" + self.ip_address + "] Connected to", self.coordinator_hostname)
         except Exception as e:
-            print("Error: Unable to connect to", self.coordinator_hostname)
+            print(
+                "[" + self.ip_address + "] Error: Unable to connect to",
+                self.coordinator_hostname,
+            )
             raise e
 
         # Initialize model as it is defined in worker_model.py
@@ -155,11 +162,13 @@ class Worker:
         """
 
         # print("Training with data", self.data)
-        print("Training ...")
+        print("[" + self.ip_address + "] Training ...")
         loss_history = []
         start = time.time()
         for epoch in range(self.epochs):
-            print(f"Running Epoch {epoch + 1} of {self.epochs}")
+            print(
+                f"[" + self.ip_address + "] Running Epoch {epoch + 1} of {self.epochs}"
+            )
             epoch_losses = []
             for batch in self.train_dl:
                 # Check if coordinator has sent an update
@@ -178,9 +187,11 @@ class Worker:
         end = time.time()
         training_time = end - start
         print(
-            f"Loss History: {loss_history}"
+            f"[" + self.ip_address + "] Loss History: {loss_history}"
         )  # Could be useful if we want to plot loss later
-        print(f"Training Time: {training_time}")  # Could be useful for tests later
+        print(
+            f"[" + self.ip_address + "] Training Time: {training_time}"
+        )  # Could be useful for tests later
 
         return [param.data.tolist() for param in self.model.parameters()]
 
@@ -190,7 +201,7 @@ class Worker:
         # Switch flag off
         self.accuracy_requested = False
 
-        print("Testing Model...")
+        print("[" + self.ip_address + "] Testing Model...")
 
         # Set the model to evaluation mode
         self.model.eval()
@@ -217,8 +228,6 @@ class Worker:
             return correct_predictions / total_samples
         else:
             return 0
-
-        return correct_predictions / total_samples
 
     def receive_notification(self, notification):
         if notification == "Update Ready":
@@ -250,15 +259,19 @@ class Worker:
                 self.global_epoch = epoch
                 self.epochs = num_epochs
             except Exception as e:
-                print(f"Problem while updating: {e}")
+                print(f"[" + self.ip_address + "] Problem while updating: {e}")
                 break
 
             # Train on local data and push contribution
             try:
-                print(f"Training for Global Epoch: {self.global_epoch}")
+                print(
+                    f"["
+                    + self.ip_address
+                    + "] Training for Global Epoch: {self.global_epoch}"
+                )
                 new_weights = self.train()
                 if not new_weights:
-                    print("Training interrupted by update")
+                    print("[" + self.ip_address + "] Training interrupted by update")
                 else:
                     accuracy = self.test() if self.testing else None
                     status = self.coordinator.load_update(
@@ -267,11 +280,15 @@ class Worker:
                     if status == "Error: Worker not registered":
                         self.connect()
                     if status != "Ok":
-                        print(f"Coordinator could not use update: {status}")
+                        print(
+                            f"["
+                            + self.ip_address
+                            + "] Coordinator could not use update: {status}"
+                        )
                         break
                 self.wait_for_notification()
             except Exception as e:
-                print(f"Problem while training: {e}")
+                print(f"[" + self.ip_address + "] Problem while training: {e}")
                 break
 
         # Clean up worker server if exited with training issue
@@ -281,30 +298,24 @@ class Worker:
 
 
 def main():
-    print(f"Running on {device}")
     if len(sys.argv) != 3:
         print("Usage: python worker.py coordinator_ip:port worker_ip")
         sys.exit(1)
 
-    # Get hostname from command line "http://<hostname>:<port>"
     name = sys.argv[1]
     coordinator_hostname = "http://" + name
-
     worker_ip = sys.argv[2]
-
-    # For debugging
-    # coordinator_hostname = "http://139.140.197.180:8082"
-    # worker_ip = "hopper.bowdoin.edu"
-
     worker = Worker(worker_ip, coordinator_hostname)
+
+    print(f"[" + worker_ip + "] Running on {device}")
 
     try:
         worker.connect()
     except ConnectionRefusedError as e:
-        print(f"Couldn't Connect: {e}")
+        print(f"[" + worker_ip + "] Couldn't Connect: {e}")
 
     worker.work()
-    print("Training complete. Shutting down.")
+    print("[" + worker_ip + "] Training complete. Shutting down.")
 
 
 if __name__ == "__main__":
