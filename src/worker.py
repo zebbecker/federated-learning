@@ -47,6 +47,14 @@ Usage: python3 worker.py coordinator_ip:port worker_ip
 """
 
 
+class SimpleWorkerServer(SimpleXMLRPCServer):
+
+    def serve_forever(self):
+        self.quit = False
+        while not self.quit:
+            self.handle_request()
+
+
 class Worker:
     def __init__(self, ip_address, coordinator_hostname):
         # Set up RPC server to receive notifications
@@ -189,12 +197,12 @@ class Worker:
         return "pong"
 
     def shutdown(self):
-        self.active = False
+        self.server.quit = True
         return "shutdown"
 
     def wait_for_notification(self):
         # Wait for server thread to register an update
-        while not self.update_ready:
+        while not self.server.quit and not self.update_ready:
             time.sleep(0.01)
 
         # Reset update status for later
@@ -202,8 +210,7 @@ class Worker:
 
     def work(self):
         """Main loop for working with coordinator"""
-        self.active = True  # made false by shutdown method
-        while self.active:
+        while not self.server.quit:
             # Get caught up to date with coordinator
             try:
                 update, epoch, num_epochs = self.coordinator.get_update(self.hostname)
@@ -232,11 +239,10 @@ class Worker:
                 print(f"Problem while training: {e}")
                 break
 
-        # Clean up worker server - allows thread to complete
-        self.coordinator.disconnect(self.hostname)
-        self.server.shutdown()
-        self.server.server_close()
-
+        # Clean up worker server if exited with training issue
+        if not self.server.quit:
+            self.coordinator.disconnect(self.hostname)
+            self.server.quit = True
 
 def main():
     print(f"Running on {device}")
