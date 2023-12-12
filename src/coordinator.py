@@ -14,14 +14,15 @@ import worker_model
 # @TODO add output if we are unable to achieve quorum percentage.
 QUORUM_PERCENTAGE = 0.75
 
-# COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
+COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
 # COORDINATOR_IP = "hopper.bowdoin.edu"
 # COORDINATOR_IP = "139.140.215.220"
-COORDINATOR_IP = "139.140.197.180"
+# COORDINATOR_IP = "139.140.197.180"
 PORT = 8082
 
 WORKER_STARTING_EPOCHS = 4
 
+MAX_EPOCHS = 4  # Stop training after this many global epochs
 
 def is_equal_dimensions(l1, l2):
     """Helper to compare two lists of tensors"""
@@ -54,9 +55,7 @@ class WorkerInfo:
         return self.server.notify(notification)
 
 
-
 class SimpleCoordinatorServer(SimpleXMLRPCServer):
-
     def serve_forever(self):
         self.quit = False
         while not self.quit:
@@ -65,7 +64,9 @@ class SimpleCoordinatorServer(SimpleXMLRPCServer):
 
 # @TODO when we reach max epochs, print something or shutdown gracefully- currently just hangs
 class Coordinator:
-    def __init__(self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=1, testing=False):
+    def __init__(
+        self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=MAX_EPOCHS, testing=False
+    ):
         # Initialize weights using worker_model spec, list of tensors
         model = worker_model.model
         self.weights = [param.data for param in model.parameters()]
@@ -110,7 +111,7 @@ class Coordinator:
             worker.notify("Ping")
         except Exception as e:
             print(f"Error pinging worker: {e}")
-        
+
         # Let worker know if they should report test resuts
         return self.testing
 
@@ -145,7 +146,8 @@ class Coordinator:
         # incrementing for each epoch
         self.workers[hostname].num_epochs += 1  # Assign more work if finished early
 
-        print(f"[FROM: {hostname}] Recieved updated weights for epoch "
+        print(
+            f"[FROM: {hostname}] Recieved updated weights for epoch "
             + str(self.workers[hostname].last_push)
         )
 
@@ -169,7 +171,9 @@ class Coordinator:
                 + " workers."
             )
             self.epoch_end_time = time.time()
-            print(f"Epoch completed in {self.epoch_end_time - self.epoch_start_time} seconds.")
+            print(
+                f"Epoch completed in {self.epoch_end_time - self.epoch_start_time} seconds."
+            )
             self.start_new_epoch()
 
         return "Ok"
@@ -189,7 +193,9 @@ class Coordinator:
         if self.testing:
             weighted_accuracy = 0
             for host, accuracy in self.epoch_accuracies.items():
-                weighted_accuracy += accuracy * (self.workers[host].data_size / total_data)
+                weighted_accuracy += accuracy * (
+                    self.workers[host].data_size / total_data
+                )
             self.accuracies.append(weighted_accuracy)
             print(f"Epoch Accuracy: {weighted_accuracy}")
 
@@ -204,10 +210,10 @@ class Coordinator:
                     worker.notify("Shutdown")
                 except Exception as e:
                     print("Error shutting down " + worker.hostname)
-            
+
             self.server.quit = True
             return
-        
+
         # Notify workers of new epoch
         print(f"Starting epoch {self.epoch + 1}. Sending notifications to workers")
         self.epoch_start_time = time.time()
