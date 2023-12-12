@@ -48,7 +48,6 @@ Usage: python3 worker.py coordinator_ip:port worker_ip
 
 
 class SimpleWorkerServer(SimpleXMLRPCServer):
-
     def serve_forever(self):
         self.quit = False
         while not self.quit:
@@ -192,7 +191,7 @@ class Worker:
         self.accuracy_requested = False
 
         print("Testing Model...")
-        
+
         # Set the model to evaluation mode
         self.model.eval()
 
@@ -213,14 +212,19 @@ class Worker:
         #         correct_predictions += (predicted == labels.to(device)).sum().item()
 
         # Calculate accuracy
+        if total_samples > 0:
+            # Avoid divide by zero error when debugging
+            return correct_predictions / total_samples
+        else:
+            return 0
+
         return correct_predictions / total_samples
 
     def receive_notification(self, notification):
-
         if notification == "Update Ready":
             self.update_ready = True
             return "Update Received"
-        
+
         elif notification == "Ping":
             return "Pong"
 
@@ -257,7 +261,9 @@ class Worker:
                     print("Training interrupted by update")
                 else:
                     accuracy = self.test() if self.testing else None
-                    status = self.coordinator.load_update(self.hostname, new_weights, accuracy)
+                    status = self.coordinator.load_update(
+                        self.hostname, new_weights, accuracy
+                    )
                     if status == "Error: Worker not registered":
                         self.connect()
                     if status != "Ok":
@@ -272,6 +278,7 @@ class Worker:
         if not self.server.quit:
             self.coordinator.disconnect(self.hostname)
             self.server.quit = True
+
 
 def main():
     print(f"Running on {device}")
