@@ -2,7 +2,6 @@
 
 ## Last updated 12.11 
 
-- Shutdown gracefully (Alex)
 - Run on amazon machines (Zeb)
 - Weighted average for aggregation (Alex); add data size parameter to WorkerInfo, send during connect
 - split data 

@@ -41,12 +41,13 @@ def is_equal_dimensions(l1, l2):
 class WorkerInfo:
     """Class to hold info about each worker"""
 
-    def __init__(self, hostname, num_epochs=WORKER_STARTING_EPOCHS):
+    def __init__(self, hostname, data_size, num_epochs=WORKER_STARTING_EPOCHS):
         self.server = ServerProxy(hostname)
         self.num_epochs = num_epochs
         self.last_push = -1
         self.last_pull = -1
         self.hostname = hostname
+        self.data_size = data_size
 
     def ping(self):
         """Ping worker to check connection"""
@@ -85,7 +86,7 @@ class Coordinator:
 
         # State for workers, updates, and training
         self.workers = {}
-        self.updates = []
+        self.updates = {}
         self.quorum_pct = quorum_percentage
         self.epoch = 1
         self.max_epochs = max_epochs
@@ -95,7 +96,7 @@ class Coordinator:
         self.epoch_start_time = time.time()
         self.epoch_end_time = time.time()
 
-    def accept_connection(self, hostname):
+    def accept_connection(self, hostname, data_size):
         """
         This is the first method that a new worker should call.
 
@@ -108,7 +109,7 @@ class Coordinator:
 
         print("[FROM " + hostname + "] Accepting new connection")
         # print("Accepting new connection on coordinator from " + hostname)
-        worker = WorkerInfo(hostname)
+        worker = WorkerInfo(hostname, data_size)
         self.workers[hostname] = worker
         try:
             worker.ping()
@@ -139,7 +140,7 @@ class Coordinator:
             return "Error: Incorrect shape for weights"
 
         # Add update to queue, and update worker state
-        self.updates.append(weights)
+        self.updates[hostname] = weights
         self.workers[hostname].last_push = self.epoch
 
         # @TODO improve load balancing. If no workers are excluded by the quorum protocol, this will continue
@@ -178,11 +179,13 @@ class Coordinator:
     def start_new_epoch(self):
         """Update global weights and start new epoch"""
 
-        # Merge updates into global weights, average across list of tensors
+        # Merge updates into global weights, weighted average across list of tensors
+        total_data = sum(self.workers[hostname].data_size for hostname in self.updates)
         for i in range(len(self.weights)):
-            tensor_stack = torch.stack([update[i] for update in self.updates])
-            # @TODO implement weighted means: workers with more data should count more
-            self.weights[i] = torch.mean(tensor_stack, dim=0)
+            weighted_sum = torch.zeros_like(self.updates[0][i])
+            for host, update in self.updates.items:
+                weighted_sum += update[i] * (self.workers[host].data_size / total_data)
+            self.weights[i] = weighted_sum
 
         # @TODO test and log accuracy for each epoch here
         self.accuracy.append(
@@ -222,7 +225,7 @@ class Coordinator:
                 worker.num_epochs = max(1, worker.num_epochs // 2)
 
         # Reset updates and increment epoch
-        self.updates = []
+        self.updates = {}
         self.epoch += 1
 
     def handle_disconnect(self, hostname):

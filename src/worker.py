@@ -62,10 +62,8 @@ class Worker:
             "http://" + ip_address + ":" + str(PORT)
         )  # Public IP address that the coordinator should use to connect
 
-        # self.server = SimpleXMLRPCServer((ip_address, PORT))  # worker server
-
         # Hackish, but gets the private IP address of the Amazon EC2 machines
-        self.server = SimpleXMLRPCServer(
+        self.server = SimpleWorkerServer(
             (socket.gethostbyname(socket.gethostname()), PORT)
         )
         self.update_ready = False
@@ -116,7 +114,7 @@ class Worker:
         self.coordinator = xmlrpc.client.ServerProxy(self.coordinator_hostname)
 
         try:
-            self.coordinator.connect(self.hostname)
+            self.coordinator.connect(self.hostname, len(self.train_dl))
             print("Connected to", self.coordinator_hostname)
         except Exception as e:
             print("Error: Unable to connect to", self.coordinator_hostname)
