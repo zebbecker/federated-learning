@@ -4,6 +4,7 @@ from xmlrpc.client import ServerProxy
 import numpy as np
 import torch
 import time
+import socket
 
 import worker_model
 
@@ -13,7 +14,8 @@ import worker_model
 # @TODO add output if we are unable to achieve quorum percentage.
 QUORUM_PERCENTAGE = 0.75
 
-COORDINATOR_IP = "hopper.bowdoin.edu"
+COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
+# COORDINATOR_IP = "hopper.bowdoin.edu"
 # COORDINATOR_IP = "139.140.215.220"
 PORT = 8082
 
@@ -67,7 +69,7 @@ class Coordinator:
 
         # Set up RPC server
         self.server = SimpleXMLRPCServer(
-            (COORDINATOR_IP, PORT),
+            (socket.gethostbyname(socket.gethostname()), PORT),
             requestHandler=SimpleXMLRPCRequestHandler,
             logRequests=False,
         )
@@ -181,7 +183,9 @@ class Coordinator:
             self.weights[i] = torch.mean(tensor_stack, dim=0)
 
         # @TODO test and log accuracy for each epoch here
-        self.accuracy.append((self.epoch, None))  # <- put actual value in here
+        self.accuracy.append(
+            (self.epoch, None)
+        )  # <- put weighted average of worker accuracies in here
 
         if self.epoch >= self.max_epochs:
             # Shutdown server if we've reached max epochs
@@ -234,7 +238,7 @@ class Coordinator:
         self.server.register_function(self.send_update, "get_update")
         self.server.register_function(self.receive_update, "load_update")
         self.server.register_function(self.handle_disconnect, "disconnect")
-        print("Coordinator serving at http://" + COORDINATOR_IP + ":" + str(PORT))
+        print("\n\nCoordinator serving at http://" + COORDINATOR_IP + ":" + str(PORT))
         self.server.serve_forever()
 
 

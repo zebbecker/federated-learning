@@ -17,6 +17,7 @@ TODO
 
 import sys
 import time
+import socket
 import xmlrpc.client
 from xmlrpc.server import SimpleXMLRPCServer
 import threading
@@ -33,7 +34,7 @@ import numpy as np
 
 import worker_model
 
-PORT = 8082
+PORT = 8083
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
 
@@ -51,8 +52,14 @@ class Worker:
         # Set up RPC server to receive notifications
         self.hostname = (
             "http://" + ip_address + ":" + str(PORT)
-        )  # address that worker server is serving on
-        self.server = SimpleXMLRPCServer((ip_address, PORT))  # worker server
+        )  # Public IP address that the coordinator should use to connect
+
+        # self.server = SimpleXMLRPCServer((ip_address, PORT))  # worker server
+
+        # Hackish, but gets the private IP address of the Amazon EC2 machines
+        self.server = SimpleXMLRPCServer(
+            (socket.gethostbyname(socket.gethostname()), PORT)
+        )
         self.update_ready = False
         self.active = True
 
@@ -73,6 +80,7 @@ class Worker:
 
         # Can always switch to local files later,
         # Gonna put this here for now (like every worker has the entire dataset)
+        # Set download=True to download files if they are not on machines already
         mnist_train = MNIST(
             "~/data", train=True, download=True, transform=transforms.ToTensor()
         )
@@ -84,7 +92,7 @@ class Worker:
 
     def connect(self):
         """Establish connection to coordinator"""
-
+        # @TODO we need to make sure that we pass in the public IP here, even if we said that the coordinator is running on the private IP
         print("Worker attemping to connect to " + self.coordinator_hostname)
 
         # Start up worker server in seperate thread
