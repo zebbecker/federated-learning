@@ -189,12 +189,12 @@ class Worker:
         return "pong"
 
     def shutdown(self):
-        self.active = False
+        self.server.quit = True
         return "shutdown"
 
     def wait_for_notification(self):
         # Wait for server thread to register an update
-        while not self.update_ready:
+        while not self.server.quit and not self.update_ready:
             time.sleep(0.01)
 
         # Reset update status for later
@@ -232,12 +232,10 @@ class Worker:
                 print(f"Problem while training: {e}")
                 break
 
-        # Clean up worker server - allows thread to complete
-        self.coordinator.disconnect(self.hostname)
-        # self.server.shutdown()
-        # self.server.server_close()
-        self.server.quit = True
-
+        # Clean up worker server if exited with training issue
+        if not self.server.quit:
+            self.coordinator.disconnect(self.hostname)
+            self.server.quit = True
 
 def main():
     print(f"Running on {device}")
