@@ -202,8 +202,7 @@ class Worker:
 
     def work(self):
         """Main loop for working with coordinator"""
-        self.active = True  # made false by shutdown method
-        while self.active:
+        while not self.server.quit:
             # Get caught up to date with coordinator
             try:
                 update, epoch, num_epochs = self.coordinator.get_update(self.hostname)
