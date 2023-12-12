@@ -14,7 +14,7 @@ import worker_model
 # @TODO add output if we are unable to achieve quorum percentage.
 QUORUM_PERCENTAGE = 0.75
 
-COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
+# COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
 # COORDINATOR_IP = "hopper.bowdoin.edu"
 # COORDINATOR_IP = "139.140.215.220"
 COORDINATOR_IP = "139.140.197.180"
@@ -72,27 +72,29 @@ class SimpleCoordinatorServer(SimpleXMLRPCServer):
 
 # @TODO when we reach max epochs, print something or shutdown gracefully- currently just hangs
 class Coordinator:
-    def __init__(self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=1):
+    def __init__(self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=1, testing=False):
         # Initialize weights using worker_model spec, list of tensors
         model = worker_model.model
         self.weights = [param.data for param in model.parameters()]
 
         # Set up RPC server
-        self.server = SimpleXMLRPCServer(
+        self.server = SimpleCoordinatorServer(
             (socket.gethostbyname(socket.gethostname()), PORT),
             requestHandler=SimpleXMLRPCRequestHandler,
             logRequests=False,
         )
 
         # State for workers, updates, and training
+        self.testing = testing
         self.workers = {}
         self.updates = {}
+        self.epoch_accuracies = {}
         self.quorum_pct = quorum_percentage
         self.epoch = 1
         self.max_epochs = max_epochs
 
         # Record accuracy score on test task after each global epoch. Stored as (epoch, score) tuples
-        self.accuracy = []
+        self.accuracies = []
         self.epoch_start_time = time.time()
         self.epoch_end_time = time.time()
 
@@ -112,11 +114,12 @@ class Coordinator:
         worker = WorkerInfo(hostname, data_size)
         self.workers[hostname] = worker
         try:
-            worker.ping()
+            worker.notify("Ping")
         except Exception as e:
             print("Error pinging worker")
-            return "Error: Worker not responding"
-        return "connected!"
+        
+        # Let worker know if they should report test resuts
+        return self.testing
 
     def send_update(self, hostname):
         """
@@ -127,7 +130,7 @@ class Coordinator:
         raw_weights = [tensor.tolist() for tensor in self.weights]
         return raw_weights, self.epoch, self.workers[hostname].num_epochs
 
-    def receive_update(self, hostname, weights):
+    def receive_update(self, hostname, weights, accuracy=None):
         """Receive update from worker"""
 
         # Check that worker is registered
@@ -142,6 +145,8 @@ class Coordinator:
         # Add update to queue, and update worker state
         self.updates[hostname] = weights
         self.workers[hostname].last_push = self.epoch
+        if accuracy:
+            self.accuracies[hostname] = accuracy
 
         # @TODO improve load balancing. If no workers are excluded by the quorum protocol, this will continue
         # incrementing for each epoch
@@ -182,25 +187,28 @@ class Coordinator:
         # Merge updates into global weights, weighted average across list of tensors
         total_data = sum(self.workers[hostname].data_size for hostname in self.updates)
         for i in range(len(self.weights)):
-            weighted_sum = torch.zeros_like(self.updates[0][i])
-            for host, update in self.updates.items:
+            weighted_sum = torch.zeros_like(self.weights[i])
+            for host, update in self.updates.items():
                 weighted_sum += update[i] * (self.workers[host].data_size / total_data)
             self.weights[i] = weighted_sum
 
-        # @TODO test and log accuracy for each epoch here
-        self.accuracy.append(
-            (self.epoch, None)
-        )  # <- put weighted average of worker accuracies in here
+        # If accuracies were requested, merge them and output
+        if self.testing:
+            weighted_accuracy = 0
+            for host, accuracy in self.accuracies.items():
+                weighted_accuracy += accuracy * (self.workers[host].data_size / total_data)
+            self.accuracies.append(weighted_accuracy)
+            print(f"Epoch Accuracy: {weighted_accuracy}")
 
         if self.epoch == self.max_epochs:
             # Shutdown server if we've reached max epochs
             print("Training complete")
+            print(f"Accuracies: {self.accuracies}")
             # print("Final weights: ", self.weights)
-            print("Accuracies per epoch: ", self.accuracy)
 
             for worker in self.workers.values():
                 try:
-                    worker.shutdown()
+                    worker.notify("Shutdown")
                 except Exception as e:
                     print("Error shutting down " + worker.hostname)
             
@@ -212,7 +220,7 @@ class Coordinator:
         self.epoch_start_time = time.time()
         for worker in self.workers.values():
             try:
-                worker.notify()
+                worker.notify("Update Ready")
             except Exception as e:
                 print("Error notifying " + worker.hostname + " of new epoch")
 
@@ -226,6 +234,7 @@ class Coordinator:
 
         # Reset updates and increment epoch
         self.updates = {}
+        self.accuracies = {}
         self.epoch += 1
 
     def handle_disconnect(self, hostname):

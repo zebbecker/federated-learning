@@ -67,7 +67,6 @@ class Worker:
             (socket.gethostbyname(socket.gethostname()), PORT)
         )
         self.update_ready = False
-        self.active = True
 
         # Coordinator and Model Stuff
         # Filled in by connect with info from coordinator
@@ -78,6 +77,7 @@ class Worker:
         self.loss = None
         self.epochs = 0
         self.global_epoch = 0
+        self.testing = False
 
         # Set up data using PyTorch DataLoaders
         # Just a helpful object for splitting up data
@@ -103,8 +103,6 @@ class Worker:
 
         # Start up worker server in seperate thread
         self.server.register_function(self.receive_notification, "notify")
-        self.server.register_function(self.ping, "ping")
-        self.server.register_function(self.shutdown, "shutdown")
         server_thread = threading.Thread(target=self.server.serve_forever)
         server_thread.start()
         print("Started worker server in seperate thread")
@@ -114,7 +112,7 @@ class Worker:
         self.coordinator = xmlrpc.client.ServerProxy(self.coordinator_hostname)
 
         try:
-            self.coordinator.connect(self.hostname, len(self.train_dl))
+            self.testing = self.coordinator.connect(self.hostname, len(self.train_dl))
             print("Connected to", self.coordinator_hostname)
         except Exception as e:
             print("Error: Unable to connect to", self.coordinator_hostname)
@@ -187,16 +185,48 @@ class Worker:
 
         return [param.data.tolist() for param in self.model.parameters()]
 
-    def receive_notification(self):
-        self.update_ready = True
-        return "Received Update"
+    def test(self):
+        """Test the model to get accuracy"""
 
-    def ping(self):
-        return "pong"
+        # Switch flag off
+        self.accuracy_requested = False
 
-    def shutdown(self):
-        self.server.quit = True
-        return "shutdown"
+        print("Testing Model...")
+        
+        # Set the model to evaluation mode
+        self.model.eval()
+
+        correct_predictions = 0
+        total_samples = 0
+
+        # with torch.no_grad():
+        #     for inputs, labels in self.test_dl:
+        #         # Forward pass
+        #         inputs = inputs.to(device)
+        #         outputs = self.model(inputs)
+
+        #         # Get predictions
+        #         _, predicted = torch.max(outputs, 1)
+
+        #         # Update counts
+        #         total_samples += labels.size(0)
+        #         correct_predictions += (predicted == labels.to(device)).sum().item()
+
+        # Calculate accuracy
+        return correct_predictions / total_samples
+
+    def receive_notification(self, notification):
+
+        if notification == "Update Ready":
+            self.update_ready = True
+            return "Update Received"
+        
+        elif notification == "Ping":
+            return "Pong"
+
+        elif notification == "Shutdown":
+            self.server.quit = True
+            return "Shutting down"
 
     def wait_for_notification(self):
         # Wait for server thread to register an update
@@ -226,9 +256,10 @@ class Worker:
                 if not new_weights:
                     print("Training interrupted by update")
                 else:
-                    status = self.coordinator.load_update(self.hostname, new_weights)
+                    accuracy = self.test() if self.testing else None
+                    status = self.coordinator.load_update(self.hostname, new_weights, accuracy)
                     if status == "Error: Worker not registered":
-                        self.connect(self.coordinator_hostname)
+                        self.connect()
                     if status != "Ok":
                         print(f"Coordinator could not use update: {status}")
                         break
