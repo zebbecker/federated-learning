@@ -11,16 +11,12 @@ import worker_model
 # Usage: python3 coordinator.py
 # (set QP, coordinator IP, and port number in script below)
 
-# @TODO add output if we are unable to achieve quorum percentage.
-QUORUM_PERCENTAGE = 0.75
+QUORUM_PERCENTAGE = 0.8
 
 COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
-# COORDINATOR_IP = "hopper.bowdoin.edu"
-# COORDINATOR_IP = "139.140.215.220"
-# COORDINATOR_IP = "139.140.197.180"
 PORT = 8082
 
-WORKER_STARTING_EPOCHS = 4
+WORKER_STARTING_EPOCHS = 1
 
 MAX_EPOCHS = 4  # Stop training after this many global epochs
 
@@ -139,7 +135,7 @@ class Coordinator:
                 1, (self.workers[hostname].num_epochs // 2)
             )
             print(
-                f"\t[FROM: {hostname}] Recieved updated weights for epoch {epoch_completed}. Discarding outdated weights."
+                f"\t[FROM: {hostname}] Recieved updated weights for epoch {epoch_completed}.\n \tCurrent epoch is {self.epoch}. Discarding outdated weights."
             )
             return "Discarding outdated update from " + hostname
 
@@ -194,25 +190,33 @@ class Coordinator:
     def start_new_epoch(self):
         """Update global weights and start new epoch"""
 
+        past_epoch = self.epoch
+        self.epoch += 1
+        past_updates = self.updates
+        self.updates = {}
+        past_epoch_accuracies = self.epoch_accuracies
+        self.epoch_accuracies = {}
+
         # Merge updates into global weights, weighted average across list of tensors
-        total_data = sum(self.workers[hostname].data_size for hostname in self.updates)
+        total_data = sum(self.workers[hostname].data_size for hostname in past_updates)
         for i in range(len(self.weights)):
             weighted_sum = torch.zeros_like(self.weights[i])
-            for host, update in self.updates.items():
+            for host, update in past_updates.items():
                 weighted_sum += update[i] * (self.workers[host].data_size / total_data)
             self.weights[i] = weighted_sum
 
         # If accuracies were requested, merge them and output
         if self.testing:
             weighted_accuracy = 0
-            for host, accuracy in self.epoch_accuracies.items():
+            for host, accuracy in past_epoch_accuracies.items():
                 weighted_accuracy += accuracy * (
                     self.workers[host].data_size / total_data
                 )
             self.accuracies.append(weighted_accuracy)
             print(f"Epoch Accuracy: {weighted_accuracy}")
 
-        if self.epoch == self.max_epochs:
+        # if self.epoch >= self.max_epochs + 1:
+        if self.epoch > self.max_epochs:
             # Shutdown server if we've reached max epochs
             print("Training complete")
             print(f"Accuracies: {self.accuracies}")
@@ -228,7 +232,8 @@ class Coordinator:
             return
 
         # Notify workers of new epoch
-        print(f"Starting epoch {self.epoch + 1}. Sending notifications to workers")
+        print(f"Starting epoch {self.epoch}. Sending notifications to workers")
+
         self.epoch_start_time = time.time()
         for worker in self.workers.values():
             try:
@@ -236,29 +241,40 @@ class Coordinator:
             except Exception as e:
                 print("Error notifying " + worker.hostname + " of new epoch")
 
-            # If worker never even responded to the notification, remove it
-            if worker.last_pull != self.epoch:
+            # If worker never even responded to the previous notification, remove it
+            # if worker.last_pull != self.epoch:
+            if self.epoch - worker.last_pull > 2:
+                print(
+                    "Deleting "
+                    + worker.hostname
+                    + " from workers: no response to previous notification."
+                )
                 del self.workers[worker]
 
             # If worker never updated, decrease work load
-            if worker.last_push != self.epoch:
+            # if worker.last_push != self.epoch:
+            if worker.last_push != past_epoch:
                 worker.num_epochs = max(1, worker.num_epochs // 2)
-
-        # Reset updates and increment epoch
-        self.updates = {}
-        self.epoch_accuracies = {}
-        self.epoch += 1
 
     def handle_disconnect(self, hostname):
         """Remove worker from list of active workers"""
         del self.workers[hostname]
         return "Removed " + hostname + " from active worker list."
 
+    def update_ready(self, hostname, worker_epoch):
+        if worker_epoch != self.epoch:
+            # print(
+            #     f"[FROM {hostname}] Update ready? Yes. Worker epoch {worker_epoch} != global epoch {self.epoch}"
+            # )
+            return "Yes"
+        return "No"
+
     def run(self):
         self.server.register_function(self.accept_connection, "connect")
         self.server.register_function(self.send_update, "get_update")
         self.server.register_function(self.receive_update, "load_update")
         self.server.register_function(self.handle_disconnect, "disconnect")
+        self.server.register_function(self.update_ready, "update_ready")
         print("\n\nCoordinator serving at http://" + COORDINATOR_IP + ":" + str(PORT))
         self.server.serve_forever()
 

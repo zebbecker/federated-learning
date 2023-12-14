@@ -237,7 +237,9 @@ class Worker:
     def wait_for_notification(self):
         # Wait for server thread to register an update
         while not self.server.quit and not self.update_ready:
-            time.sleep(0.01)
+            time.sleep(1)
+            if self.coordinator.update_ready(self.hostname, self.global_epoch) == "Yes":
+                self.update_ready = True
 
         # Reset update status for later
         self.update_ready = False
@@ -277,11 +279,18 @@ class Worker:
                     )
                     if status == "Error: Worker not registered":
                         self.connect()
+                        continue
                     if status != "Ok":
                         print(
                             f"[{self.ip_address}] Coordinator could not use update: {status}"
                         )
-                        break
+                        # @TODO dont just shutdown: try to connect again and keep working
+                        # @TODO maybe this is what is stalling?
+                        # break
+                        # self.wait_for_notification()
+                        # continue
+                        # Note that this flow never calls wait for notification. not sure if that is an issue.
+                        # Wait for notification just blocks this loop from restarting until an update is ready.
                 self.wait_for_notification()
             except Exception as e:
                 print(f"[{self.ip_address}] Problem while training: {e}")
