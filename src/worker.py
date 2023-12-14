@@ -1,20 +1,3 @@
-"""Script for Worker Machines to Run
-
-Idea is for workers to connect to coordinator then iteratively train
-1. Send introduction to coordinator
-2. Initialize model from coordinator's spec
-3. Get global update from coordinator
-4. Train on local data
-5. Send update to coordinator 
-6. Go back to step 3 and loop for lifetime of worker
-
-TODO
-- Right now Worker assumes that coordinator has connect and update methods
-- Need to figure out data formatting, to make sure things are marshalled correctly
-- Eventually change data to work with local files
-- Eventually add a way to dynamically create model architecture
-"""
-
 import sys
 import time
 import socket
@@ -275,7 +258,7 @@ class Worker:
                 else:
                     accuracy = self.test() if self.testing else None
                     status = self.coordinator.load_update(
-                        self.hostname, new_weights, accuracy
+                        self.hostname, new_weights, self.global_epoch, accuracy
                     )
                     if status == "Error: Worker not registered":
                         self.connect()

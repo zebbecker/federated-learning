@@ -24,6 +24,7 @@ WORKER_STARTING_EPOCHS = 4
 
 MAX_EPOCHS = 4  # Stop training after this many global epochs
 
+
 def is_equal_dimensions(l1, l2):
     """Helper to compare two lists of tensors"""
 
@@ -62,7 +63,6 @@ class SimpleCoordinatorServer(SimpleXMLRPCServer):
             self.handle_request()
 
 
-# @TODO when we reach max epochs, print something or shutdown gracefully- currently just hangs
 class Coordinator:
     def __init__(
         self, quorum_percentage=QUORUM_PERCENTAGE, max_epochs=MAX_EPOCHS, testing=False
@@ -124,12 +124,19 @@ class Coordinator:
         raw_weights = [tensor.tolist() for tensor in self.weights]
         return raw_weights, self.epoch, self.workers[hostname].num_epochs
 
-    def receive_update(self, hostname, weights, accuracy=None):
+    def receive_update(self, hostname, weights, epoch_completed, accuracy=None):
         """Receive update from worker"""
 
         # Check that worker is registered
         if hostname not in self.workers:
             return "Error: Worker not registered"
+
+        # @TODO Alex please review and make sure this is ok with your load balancing
+        # Check if this update is for current epoch
+        if epoch_completed != self.epoch:
+            self.workers[hostname].last_push = epoch_completed
+            self.workers[hostname].num_epochs = self.workers[hostname].num_epochs // 2
+            return "Discarding outdated update from " + hostname
 
         # Check that weights are the correct shape
         weights = [torch.FloatTensor(element) for element in weights]
