@@ -20,6 +20,8 @@ import worker_model
 PORT = 8083
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
+# max number of times worker will try to reconnect to coordinator if an issue occurs during training.
+MAX_RETRIES = 5
 
 # Check if GPU is available, and use if possible, data is sent to "device" later
 # device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -97,15 +99,25 @@ class Worker:
         # Connect to host and greet with intro message
         self.coordinator = xmlrpc.client.ServerProxy(self.coordinator_hostname)
 
-        try:
-            self.testing = self.coordinator.connect(self.hostname, len(self.train_dl))
-            print("[" + self.ip_address + "] Connected to", self.coordinator_hostname)
-        except Exception as e:
-            print(
-                "[" + self.ip_address + "] Error: Unable to connect to",
-                self.coordinator_hostname,
-            )
-            raise e
+        retries = MAX_RETRIES
+        while retries > 0:
+            try:
+                self.testing = self.coordinator.connect(
+                    self.hostname, len(self.train_dl)
+                )
+                print(
+                    "[" + self.ip_address + "] Connected to", self.coordinator_hostname
+                )
+                break
+            except Exception as e:
+                print(
+                    "[" + self.ip_address + "] Error: Unable to connect to",
+                    self.coordinator_hostname,
+                )
+                retries -= 1
+                if retries < 0:
+                    raise e
+                time.sleep(1)
 
         # Initialize model as it is defined in worker_model.py
         self.model = worker_model.model.to(device)
@@ -149,9 +161,7 @@ class Worker:
         loss_history = []
         start = time.time()
         for epoch in range(self.epochs):
-            print(
-                f"[" + self.ip_address + "] Running Epoch {epoch + 1} of {self.epochs}"
-            )
+            print(f"[{self.ip_address}] Running Epoch {epoch + 1} of {self.epochs}")
             epoch_losses = []
             for batch in self.train_dl:
                 # Check if coordinator has sent an update
@@ -170,10 +180,10 @@ class Worker:
         end = time.time()
         training_time = end - start
         print(
-            f"[" + self.ip_address + "] Loss History: {loss_history}"
+            f"[{self.ip_address}] Loss History: {loss_history}"
         )  # Could be useful if we want to plot loss later
         print(
-            f"[" + self.ip_address + "] Training Time: {training_time}"
+            f"[{self.ip_address}] Training Time: {training_time}"
         )  # Could be useful for tests later
 
         return [param.data.tolist() for param in self.model.parameters()]
@@ -233,6 +243,7 @@ class Worker:
         self.update_ready = False
 
     def work(self):
+        retries = MAX_RETRIES
         """Main loop for working with coordinator"""
         while not self.server.quit:
             # Get caught up to date with coordinator
@@ -242,19 +253,23 @@ class Worker:
                 self.global_epoch = epoch
                 self.epochs = num_epochs
             except Exception as e:
-                print(f"[" + self.ip_address + "] Problem while updating: {e}")
-                break
+                print(f"[{self.ip_address}] Problem while updating: {e}")
+                if retries < 0:
+                    break
+                else:
+                    print("Retrying...")
+                    retries -= 1
+                    time.sleep(1)
+                    continue
 
             # Train on local data and push contribution
             try:
                 print(
-                    f"["
-                    + self.ip_address
-                    + "] Training for Global Epoch: {self.global_epoch}"
+                    f"[{self.ip_address}] Training for Global Epoch: {self.global_epoch}"
                 )
                 new_weights = self.train()
                 if not new_weights:
-                    print("[" + self.ip_address + "] Training interrupted by update")
+                    print(f"[{self.ip_address}] Training interrupted by update")
                 else:
                     accuracy = self.test() if self.testing else None
                     status = self.coordinator.load_update(
@@ -264,15 +279,19 @@ class Worker:
                         self.connect()
                     if status != "Ok":
                         print(
-                            f"["
-                            + self.ip_address
-                            + "] Coordinator could not use update: {status}"
+                            f"[{self.ip_address}] Coordinator could not use update: {status}"
                         )
                         break
                 self.wait_for_notification()
             except Exception as e:
-                print(f"[" + self.ip_address + "] Problem while training: {e}")
-                break
+                print(f"[{self.ip_address}] Problem while training: {e}")
+                if retries < 0:
+                    break
+                else:
+                    print("Retrying...")
+                    retries -= 1
+                    time.sleep(1)
+                    continue
 
         # Clean up worker server if exited with training issue
         if not self.server.quit:
@@ -290,12 +309,12 @@ def main():
     worker_ip = sys.argv[2]
     worker = Worker(worker_ip, coordinator_hostname)
 
-    print(f"[" + worker_ip + "] Running on {device}")
+    print(f"[{worker_ip}] Running on {device}")
 
     try:
         worker.connect()
     except ConnectionRefusedError as e:
-        print(f"[" + worker_ip + "] Couldn't Connect: {e}")
+        print(f"[{worker_ip}] Couldn't Connect: {e}")
 
     worker.work()
     print("[" + worker_ip + "] Training complete. Shutting down.")

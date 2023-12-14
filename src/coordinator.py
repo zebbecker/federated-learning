@@ -103,7 +103,7 @@ class Coordinator:
         allowing the coordinator to ping it and ensure a functional two way connection.
         """
 
-        print("[FROM " + hostname + "] Accepting new connection")
+        print("\t[FROM " + hostname + "] Accepting new connection")
         # print("Accepting new connection on coordinator from " + hostname)
         worker = WorkerInfo(hostname, data_size)
         self.workers[hostname] = worker
@@ -135,7 +135,12 @@ class Coordinator:
         # Check if this update is for current epoch
         if epoch_completed != self.epoch:
             self.workers[hostname].last_push = epoch_completed
-            self.workers[hostname].num_epochs = self.workers[hostname].num_epochs // 2
+            self.workers[hostname].num_epochs = max(
+                1, (self.workers[hostname].num_epochs // 2)
+            )
+            print(
+                f"\t[FROM: {hostname}] Recieved updated weights for epoch {epoch_completed}. Discarding outdated weights."
+            )
             return "Discarding outdated update from " + hostname
 
         # Check that weights are the correct shape
@@ -154,16 +159,17 @@ class Coordinator:
         self.workers[hostname].num_epochs += 1  # Assign more work if finished early
 
         print(
-            f"[FROM: {hostname}] Recieved updated weights for epoch "
-            + str(self.workers[hostname].last_push)
+            f"\t[FROM {hostname}] Recieved updated weights for epoch "
+            + str(epoch_completed)
         )
 
         print(
-            str(len(self.updates))
+            "\t\t"
+            + str(len(self.updates))
             + " of "
             + str(len(self.workers))
             + " recieved. Current response rate: "
-            + str(len(self.updates) / len(self.workers))
+            + str(round(len(self.updates) / len(self.workers), 2))
         )
 
         # Start new epoch if enough updates have been received
