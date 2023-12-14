@@ -81,8 +81,9 @@ class Worker:
         )
 
         # Get random sized subset
-        set_size = random.randint(100, len(mnist_train))
-        random_set = set(random.sample(range(1, len(mnist_train)), set_size))
+        # set_size = random.randint(100, len(mnist_train))
+        set_size = random.randint(100, 2000)
+        random_set = list(set(random.sample(range(1, len(mnist_train)), set_size)))
         subset = Subset(mnist_train, random_set)
         print(f"Working with dataset of {set_size} images")
 
@@ -177,13 +178,13 @@ class Worker:
                     return None
 
                 # Train a batch
-                # x, y = batch
-                # x, y = x.to(device), y.to(device)
-            #     batch_loss = self.train_batch(x, y)
-            #     epoch_losses.append(batch_loss)
+                x, y = batch
+                x, y = x.to(device), y.to(device)
+                batch_loss = self.train_batch(x, y)
+                epoch_losses.append(batch_loss)
 
-            # epoch_loss = np.mean(epoch_losses)
-            # loss_history.append(epoch_loss)
+            epoch_loss = np.mean(epoch_losses)
+            loss_history.append(epoch_loss)
 
         end = time.time()
         training_time = end - start
@@ -210,18 +211,18 @@ class Worker:
         correct_predictions = 0
         total_samples = 0
 
-        # with torch.no_grad():
-        #     for inputs, labels in self.test_dl:
-        #         # Forward pass
-        #         inputs = inputs.to(device)
-        #         outputs = self.model(inputs)
+        with torch.no_grad():
+            for inputs, labels in self.test_dl:
+                # Forward pass
+                inputs = inputs.to(device)
+                outputs = self.model(inputs)
 
-        #         # Get predictions
-        #         _, predicted = torch.max(outputs, 1)
+                # Get predictions
+                _, predicted = torch.max(outputs, 1)
 
-        #         # Update counts
-        #         total_samples += labels.size(0)
-        #         correct_predictions += (predicted == labels.to(device)).sum().item()
+                # Update counts
+                total_samples += labels.size(0)
+                correct_predictions += (predicted == labels.to(device)).sum().item()
 
         # Calculate accuracy
         if total_samples > 0:

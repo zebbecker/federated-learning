@@ -11,12 +11,12 @@ import worker_model
 # Usage: python3 coordinator.py
 # (set QP, coordinator IP, and port number in script below)
 
-QUORUM_PERCENTAGE = 0.8
+QUORUM_PERCENTAGE = 0.75
 
 COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
 PORT = 8082
 
-WORKER_STARTING_EPOCHS = 1
+WORKER_STARTING_EPOCHS = 2
 
 MAX_EPOCHS = 4  # Stop training after this many global epochs
 
