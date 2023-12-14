@@ -1,10 +1,17 @@
 # TODO
 
-## Last updated 12.13
+## Last updated 12.14
 
-- Implement instrumentation for load balancing experiment (Zeb)
 - split data (Alex)
 - Do experiments (Zeb)
 
-- Paper
-
+Paper
+- Background/intro: what is FL? 
+- related work 
+- **design/architecture** (fig 1)
+- our implementation
+- **evaulation**
+    - e1 (fig 2)
+    - e2 (fig 3)
+    - e3 (fig 4)
+- conclusion 
