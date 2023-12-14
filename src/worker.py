@@ -9,7 +9,7 @@ import random
 import torch
 import torch.nn as nn
 from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 from torchsummary import summary
 from torch.optim import Adam
@@ -83,7 +83,7 @@ class Worker:
         # Get random sized subset
         set_size = random.randint(100, len(mnist_train))
         random_set = set(random.sample(range(1, len(mnist_train)), set_size))
-        subset = torch.utils.data.Subset(mnist_train, random_set)
+        subset = Subset(mnist_train, random_set)
         print(f"Working with dataset of {set_size} images")
 
         self.train_dl = DataLoader(subset, batch_size=BATCH_SIZE, shuffle=True)
