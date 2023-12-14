@@ -46,6 +46,9 @@ class WorkerInfo:
         self.last_pull = -1
         self.hostname = hostname
         self.data_size = data_size
+        self.epoch_start_time = 0
+        self.epoch_end_time = 0
+        self.epoch_durations = []
 
     def notify(self, notification):
         """Notify worker with some message"""
@@ -118,6 +121,7 @@ class Coordinator:
         """
         self.workers[hostname].last_pull = self.epoch
         raw_weights = [tensor.tolist() for tensor in self.weights]
+        self.workers[hostname].epoch_start_time = time.time()
         return raw_weights, self.epoch, self.workers[hostname].num_epochs
 
     def receive_update(self, hostname, weights, epoch_completed, accuracy=None):
@@ -127,6 +131,14 @@ class Coordinator:
         if hostname not in self.workers:
             return "Error: Worker not registered"
 
+        self.workers[hostname].epoch_end_time = time.time()
+        self.workers[hostname].epoch_durations.append(
+            round(
+                self.workers[hostname].epoch_end_time
+                - self.workers[hostname].epoch_start_time,
+                3,
+            )
+        )
         # @TODO Alex please review and make sure this is ok with your load balancing
         # Check if this update is for current epoch
         if epoch_completed != self.epoch:
@@ -221,6 +233,10 @@ class Coordinator:
             print("Training complete")
             print(f"Accuracies: {self.accuracies}")
             # print("Final weights: ", self.weights)
+            print("Epoch durations:")
+            for worker in self.workers.values():
+                print("\t" + worker.hostname)
+                print(worker.epoch_durations)
 
             for worker in self.workers.values():
                 try:
