@@ -1,0 +1,53 @@
+Coordinator serving at http://15.156.205.154:8082
+	[FROM http://13.208.251.78:8083] Accepting new connection
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 1
+		1 of 1 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 1 with 1 updates from 1 workers.
+Epoch completed in 136.0569179058075 seconds.
+Epoch Accuracy: 0.1094
+Starting epoch 2. Sending notifications to workers
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 2
+		1 of 1 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 2 with 1 updates from 1 workers.
+Epoch completed in 14.173314571380615 seconds.
+Epoch Accuracy: 0.1363
+Starting epoch 3. Sending notifications to workers
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 3
+		1 of 1 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 3 with 1 updates from 1 workers.
+Epoch completed in 14.011759519577026 seconds.
+Epoch Accuracy: 0.1478
+Starting epoch 4. Sending notifications to workers
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 4
+		1 of 1 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 4 with 1 updates from 1 workers.
+Epoch completed in 14.238762617111206 seconds.
+Epoch Accuracy: 0.151
+Training complete
+Accuracies: [0.1094, 0.1363, 0.1478, 0.151]
+Epoch durations:
+[(1, 13.418), (2, 13.54), (3, 13.38), (4, 13.606)]
+[zbecker2@ip-172-31-21-18 ~]$ python3 coordinator.py 
+
+
+Coordinator serving at http://15.156.205.154:8082
+	[FROM http://13.208.251.78:8083] Accepting new connection
+Terminated
+[zbecker2@ip-172-31-21-18 ~]$ python3 coordinator.py 
+
+
+Coordinator serving at http://15.156.205.154:8082
+	[FROM http://13.208.251.78:8083] Accepting new connection
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 1
+		1 of 1 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 1 with 1 updates from 1 workers.
+Epoch completed in 256.53634238243103 seconds.
+Epoch Accuracy: 0.9776
+Starting epoch 2. Sending notifications to workers
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 2
+		1 of 1 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 2 with 1 updates from 1 workers.
+Epoch completed in 320.0778114795685 seconds.
+Epoch Accuracy: 0.9799
+Starting epoch 3. Sending notifications to workers
+Terminated

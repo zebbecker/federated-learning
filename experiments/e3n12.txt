@@ -1,0 +1,293 @@
+[zbecker2@ip-172-31-21-18 ~]$ python3 coordinator.py 
+
+
+Coordinator serving at http://15.156.205.154:8082
+	[FROM http://15.156.205.154:8083] Accepting new connection
+	[FROM http://3.128.204.116:8083] Accepting new connection
+	[FROM http://3.135.204.68:8083] Accepting new connection
+	[FROM http://13.39.18.95:8083] Accepting new connection
+	[FROM http://3.67.193.200:8083] Accepting new connection
+	[FROM http://54.216.88.215:8083] Accepting new connection
+	[FROM http://3.89.231.167:8083] Accepting new connection
+	[FROM http://3.10.51.103:8083] Accepting new connection
+	[FROM http://34.217.13.50:8083] Accepting new connection
+	[FROM http://54.241.136.136:8083] Accepting new connection
+	[FROM http://18.228.224.70:8083] Accepting new connection
+	[FROM http://54.180.82.204:8083] Accepting new connection
+	[FROM http://18.166.58.233:8083] Accepting new connection
+	[FROM http://51.17.168.219:8083] Accepting new connection
+	[FROM http://18.230.184.226:8083] Accepting new connection
+	[FROM http://18.192.57.65:8083] Accepting new connection
+	[FROM http://13.246.232.5:8083] Accepting new connection
+	[FROM http://13.208.251.78:8083] Accepting new connection
+	[FROM http://108.136.135.181:8083] Accepting new connection
+	[FROM http://157.175.85.120:8083] Accepting new connection
+	[FROM http://51.17.24.10:8083] Accepting new connection
+	[FROM http://54.180.122.185:8083] Accepting new connection
+	[FROM http://3.110.118.143:8083] Accepting new connection
+	[FROM http://34.245.77.164:8083] Accepting new connection
+	[FROM http://54.169.70.132:8083] Accepting new connection
+	[FROM http://15.160.247.27:8083] Accepting new connection
+	[FROM http://3.28.44.128:8083] Accepting new connection
+	[FROM http://3.135.204.68:8083] Recieved updated weights for epoch 1
+		1 of 27 recieved. Current response rate: 0.04
+	[FROM http://13.39.18.95:8083] Recieved updated weights for epoch 1
+		2 of 27 recieved. Current response rate: 0.07
+	[FROM http://3.128.204.116:8083] Recieved updated weights for epoch 1
+		3 of 27 recieved. Current response rate: 0.11
+	[FROM http://18.136.201.21:8083] Accepting new connection
+	[FROM http://3.26.52.227:8083] Accepting new connection
+	[FROM http://18.163.35.20:8083] Accepting new connection
+	[FROM http://3.27.82.43:8083] Accepting new connection
+	[FROM http://52.47.75.71:8083] Accepting new connection
+	[FROM http://15.152.54.178:8083] Accepting new connection
+	[FROM http://108.137.2.253:8083] Accepting new connection
+	[FROM http://54.216.88.215:8083] Recieved updated weights for epoch 1
+		4 of 34 recieved. Current response rate: 0.12
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 1
+		5 of 34 recieved. Current response rate: 0.15
+	[FROM http://3.67.193.200:8083] Recieved updated weights for epoch 1
+		6 of 34 recieved. Current response rate: 0.18
+	[FROM http://13.246.232.5:8083] Recieved updated weights for epoch 1
+		7 of 34 recieved. Current response rate: 0.21
+	[FROM http://18.230.184.226:8083] Recieved updated weights for epoch 1
+		8 of 34 recieved. Current response rate: 0.24
+	[FROM http://3.89.231.167:8083] Recieved updated weights for epoch 1
+		9 of 34 recieved. Current response rate: 0.26
+	[FROM http://34.245.77.164:8083] Recieved updated weights for epoch 1
+		10 of 34 recieved. Current response rate: 0.29
+	[FROM http://54.180.122.185:8083] Recieved updated weights for epoch 1
+		11 of 34 recieved. Current response rate: 0.32
+	[FROM http://51.17.168.219:8083] Recieved updated weights for epoch 1
+		12 of 34 recieved. Current response rate: 0.35
+	[FROM http://52.47.75.71:8083] Recieved updated weights for epoch 1
+		13 of 34 recieved. Current response rate: 0.38
+	[FROM http://3.28.44.128:8083] Recieved updated weights for epoch 1
+		14 of 34 recieved. Current response rate: 0.41
+	[FROM http://18.192.57.65:8083] Recieved updated weights for epoch 1
+		15 of 34 recieved. Current response rate: 0.44
+	[FROM http://157.175.85.120:8083] Recieved updated weights for epoch 1
+		16 of 34 recieved. Current response rate: 0.47
+	[FROM http://18.163.35.20:8083] Recieved updated weights for epoch 1
+		17 of 34 recieved. Current response rate: 0.5
+	[FROM http://54.169.70.132:8083] Recieved updated weights for epoch 1
+		18 of 34 recieved. Current response rate: 0.53
+	[FROM http://13.48.48.239:8083] Accepting new connection
+	[FROM http://3.111.39.82:8083] Accepting new connection
+	[FROM http://15.185.38.199:8083] Accepting new connection
+	[FROM http://3.29.126.32:8083] Accepting new connection
+	[FROM http://3.112.237.22:8083] Accepting new connection
+	[FROM http://108.137.2.253:8083] Recieved updated weights for epoch 1
+		19 of 39 recieved. Current response rate: 0.49
+	[FROM http://51.20.98.34:8083] Accepting new connection
+	[FROM http://34.217.13.50:8083] Recieved updated weights for epoch 1
+		20 of 40 recieved. Current response rate: 0.5
+	[FROM http://3.111.39.82:8083] Recieved updated weights for epoch 1
+		21 of 40 recieved. Current response rate: 0.53
+	[FROM http://13.245.150.107:8083] Accepting new connection
+	[FROM http://13.48.48.239:8083] Recieved updated weights for epoch 1
+		22 of 41 recieved. Current response rate: 0.54
+	[FROM http://13.114.101.52:8083] Accepting new connection
+	[FROM http://15.185.38.199:8083] Recieved updated weights for epoch 1
+		23 of 42 recieved. Current response rate: 0.55
+	[FROM http://18.166.58.233:8083] Recieved updated weights for epoch 1
+		24 of 42 recieved. Current response rate: 0.57
+	[FROM http://13.245.150.107:8083] Recieved updated weights for epoch 1
+		25 of 42 recieved. Current response rate: 0.6
+	[FROM http://51.20.98.34:8083] Recieved updated weights for epoch 1
+		26 of 42 recieved. Current response rate: 0.62
+	[FROM http://3.29.126.32:8083] Recieved updated weights for epoch 1
+		27 of 42 recieved. Current response rate: 0.64
+	[FROM http://15.152.54.178:8083] Recieved updated weights for epoch 1
+		28 of 42 recieved. Current response rate: 0.67
+	[FROM http://54.241.136.136:8083] Recieved updated weights for epoch 1
+		29 of 42 recieved. Current response rate: 0.69
+	[FROM http://3.112.237.22:8083] Recieved updated weights for epoch 1
+		30 of 42 recieved. Current response rate: 0.71
+	[FROM http://3.27.82.43:8083] Recieved updated weights for epoch 1
+		31 of 42 recieved. Current response rate: 0.74
+	[FROM http://51.17.24.10:8083] Recieved updated weights for epoch 1
+		32 of 42 recieved. Current response rate: 0.76
+Quorum achieved - ending epoch 1 with 32 updates from 42 workers.
+Epoch completed in 119.62879705429077 seconds.
+Epoch Accuracy: 0.8414426778242677
+Starting epoch 2. Sending notifications to workers
+Deleting http://3.10.51.103:8083 from workers: no response to previous notification.
+	[FROM http://13.245.150.107:8083] Recieved updated weights for epoch 2
+		1 of 42 recieved. Current response rate: 0.02
+	[FROM http://54.216.88.215:8083] Recieved updated weights for epoch 2
+		2 of 42 recieved. Current response rate: 0.05
+	[FROM http://3.111.39.82:8083] Recieved updated weights for epoch 2
+		3 of 42 recieved. Current response rate: 0.07
+	[FROM http://18.166.58.233:8083] Recieved updated weights for epoch 2
+		4 of 42 recieved. Current response rate: 0.1
+	[FROM http://3.135.204.68:8083] Recieved updated weights for epoch 2
+		5 of 42 recieved. Current response rate: 0.12
+	[FROM http://51.17.24.10:8083] Recieved updated weights for epoch 2
+		6 of 42 recieved. Current response rate: 0.14
+	[FROM http://15.185.38.199:8083] Recieved updated weights for epoch 2
+		7 of 42 recieved. Current response rate: 0.17
+	[FROM http://18.192.57.65:8083] Recieved updated weights for epoch 2
+		8 of 42 recieved. Current response rate: 0.19
+	[FROM http://3.28.44.128:8083] Recieved updated weights for epoch 2
+		9 of 42 recieved. Current response rate: 0.21
+	[FROM http://18.163.35.20:8083] Recieved updated weights for epoch 2
+		10 of 42 recieved. Current response rate: 0.24
+	[FROM http://18.230.184.226:8083] Recieved updated weights for epoch 2
+		11 of 42 recieved. Current response rate: 0.26
+	[FROM http://3.29.126.32:8083] Recieved updated weights for epoch 2
+		12 of 42 recieved. Current response rate: 0.29
+	[FROM http://52.25.77.13:8083] Accepting new connection
+	[FROM http://3.112.237.22:8083] Recieved updated weights for epoch 2
+		13 of 43 recieved. Current response rate: 0.3
+	[FROM http://15.152.54.178:8083] Recieved updated weights for epoch 2
+		14 of 43 recieved. Current response rate: 0.33
+	[FROM http://3.89.231.167:8083] Recieved updated weights for epoch 2
+		15 of 43 recieved. Current response rate: 0.35
+	[FROM http://34.228.197.147:8083] Accepting new connection
+	[FROM http://51.17.168.219:8083] Recieved updated weights for epoch 2
+		16 of 44 recieved. Current response rate: 0.36
+	[FROM http://15.160.247.27:8083] Recieved updated weights for epoch 2
+		17 of 44 recieved. Current response rate: 0.39
+	[FROM http://54.241.136.136:8083] Recieved updated weights for epoch 2
+		18 of 44 recieved. Current response rate: 0.41
+	[FROM http://54.180.122.185:8083] Recieved updated weights for epoch 2
+		19 of 44 recieved. Current response rate: 0.43
+	[FROM http://18.228.224.70:8083] Recieved updated weights for epoch 2
+		20 of 44 recieved. Current response rate: 0.45
+	[FROM http://3.26.52.227:8083] Recieved updated weights for epoch 2
+		21 of 44 recieved. Current response rate: 0.48
+	[FROM http://34.228.197.147:8083] Recieved updated weights for epoch 2
+		22 of 44 recieved. Current response rate: 0.5
+	[FROM http://108.136.135.181:8083] Recieved updated weights for epoch 2
+		23 of 44 recieved. Current response rate: 0.52
+	[FROM http://3.110.118.143:8083] Recieved updated weights for epoch 2
+		24 of 44 recieved. Current response rate: 0.55
+	[FROM http://3.10.51.103:8083] Recieved updated weights for epoch 2
+		25 of 44 recieved. Current response rate: 0.57
+	[FROM http://52.25.77.13:8083] Recieved updated weights for epoch 2
+		26 of 44 recieved. Current response rate: 0.59
+	[FROM http://13.39.18.95:8083] Recieved updated weights for epoch 2
+		27 of 44 recieved. Current response rate: 0.61
+	[FROM http://108.137.2.253:8083] Recieved updated weights for epoch 2
+		28 of 44 recieved. Current response rate: 0.64
+	[FROM http://13.40.228.246:8083] Accepting new connection
+	[FROM http://54.180.82.204:8083] Recieved updated weights for epoch 2
+		29 of 45 recieved. Current response rate: 0.64
+	[FROM http://13.246.232.5:8083] Recieved updated weights for epoch 2
+		30 of 45 recieved. Current response rate: 0.67
+	[FROM http://3.67.193.200:8083] Recieved updated weights for epoch 2
+		31 of 45 recieved. Current response rate: 0.69
+	[FROM http://13.40.228.246:8083] Recieved updated weights for epoch 2
+		32 of 45 recieved. Current response rate: 0.71
+	[FROM http://157.175.85.120:8083] Recieved updated weights for epoch 2
+		33 of 45 recieved. Current response rate: 0.73
+	[FROM http://15.156.205.154:8083] Recieved updated weights for epoch 2
+		34 of 45 recieved. Current response rate: 0.76
+Quorum achieved - ending epoch 2 with 34 updates from 45 workers.
+Epoch completed in 183.56567525863647 seconds.
+Epoch Accuracy: 0.8879705673758868
+Training complete
+Accuracies: [0.8414426778242677, 0.8879705673758868]
+Epoch durations:
+	http://15.156.205.154:8083
+[13.844]
+	http://3.128.204.116:8083
+[16.983]
+	http://3.135.204.68:8083
+[13.868, 17.799]
+	http://13.39.18.95:8083
+[15.035, 82.685]
+	http://3.67.193.200:8083
+[27.727, 23.754]
+	http://54.216.88.215:8083
+[24.402, 19.036]
+	http://3.89.231.167:8083
+[36.84, 40.595]
+	http://3.10.51.103:8083
+[27.934]
+	http://34.217.13.50:8083
+[13.331]
+	http://54.241.136.136:8083
+[100.742, 62.22]
+	http://18.228.224.70:8083
+[29.833]
+	http://54.180.82.204:8083
+[20.727]
+	http://18.166.58.233:8083
+[14.465, 20.504]
+	http://51.17.168.219:8083
+[40.963, 46.564]
+	http://18.230.184.226:8083
+[30.613, 32.718]
+	http://18.192.57.65:8083
+[44.926, 19.522]
+	http://13.246.232.5:8083
+[27.31, 30.065]
+	http://13.208.251.78:8083
+[19.623]
+	http://108.136.135.181:8083
+[18.839]
+	http://157.175.85.120:8083
+[49.22, 12.862]
+	http://51.17.24.10:8083
+[81.127, 22.034]
+	http://54.180.122.185:8083
+[31.801, 49.093]
+	http://3.110.118.143:8083
+[22.908]
+	http://34.245.77.164:8083
+[27.089]
+	http://54.169.70.132:8083
+[45.305]
+	http://15.160.247.27:8083
+[8.771]
+	http://3.28.44.128:8083
+[35.466, 38.517]
+	http://18.136.201.21:8083
+[]
+	http://3.26.52.227:8083
+[21.479]
+	http://18.163.35.20:8083
+[40.359, 34.205]
+	http://3.27.82.43:8083
+[78.865]
+	http://52.47.75.71:8083
+[29.59]
+	http://15.152.54.178:8083
+[14.827, 47.678]
+	http://108.137.2.253:8083
+[24.835, 83.606]
+	http://13.48.48.239:8083
+[18.463]
+	http://3.111.39.82:8083
+[12.775, 14.747]
+	http://15.185.38.199:8083
+[20.657, 25.373]
+	http://3.29.126.32:8083
+[32.193, 41.333]
+	http://3.112.237.22:8083
+[21.254, 37.138]
+	http://51.20.98.34:8083
+[16.416]
+	http://13.245.150.107:8083
+[12.077, 11.547]
+	http://13.114.101.52:8083
+[]
+	http://52.25.77.13:8083
+[28.145]
+	http://34.228.197.147:8083
+[16.569]
+	http://13.40.228.246:8083
+[14.941]
+Error shutting down http://3.128.204.116:8083
+Error shutting down http://34.217.13.50:8083
+Error shutting down http://13.208.251.78:8083
+Error shutting down http://34.245.77.164:8083
+Error shutting down http://54.169.70.132:8083
+Error shutting down http://18.136.201.21:8083
+Error shutting down http://3.27.82.43:8083
+Error shutting down http://52.47.75.71:8083
+Error shutting down http://13.48.48.239:8083
+Error shutting down http://51.20.98.34:8083
+

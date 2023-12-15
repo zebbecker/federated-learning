@@ -1,0 +1,59 @@
+Coordinator serving at http://15.156.205.154:8082
+	[FROM http://13.208.251.78:8083] Accepting new connection
+	[FROM http://3.99.152.205:8083] Accepting new connection
+	[FROM http://3.128.204.116:8083] Accepting new connection
+	[FROM http://51.20.98.34:8083] Accepting new connection
+	[FROM http://18.136.201.21:8083] Accepting new connection
+	[FROM http://3.27.82.43:8083] Accepting new connection
+	[FROM http://52.47.75.71:8083] Accepting new connection
+	[FROM http://54.169.70.132:8083] Accepting new connection
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 1
+		1 of 8 recieved. Current response rate: 0.12
+	[FROM http://3.99.152.205:8083] Recieved updated weights for epoch 1
+		2 of 8 recieved. Current response rate: 0.25
+	[FROM http://3.128.204.116:8083] Recieved updated weights for epoch 1
+		3 of 8 recieved. Current response rate: 0.38
+	[FROM http://18.136.201.21:8083] Recieved updated weights for epoch 1
+		4 of 8 recieved. Current response rate: 0.5
+	[FROM http://51.20.98.34:8083] Recieved updated weights for epoch 1
+		5 of 8 recieved. Current response rate: 0.62
+	[FROM http://3.27.82.43:8083] Recieved updated weights for epoch 1
+		6 of 8 recieved. Current response rate: 0.75
+	[FROM http://52.47.75.71:8083] Recieved updated weights for epoch 1
+		7 of 8 recieved. Current response rate: 0.88
+	[FROM http://54.169.70.132:8083] Recieved updated weights for epoch 1
+		8 of 8 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 1 with 8 updates from 8 workers.
+Epoch completed in 78.38924169540405 seconds.
+Epoch Accuracy: 0.9182250000000001
+Starting epoch 2. Sending notifications to workers
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 2
+		1 of 8 recieved. Current response rate: 0.12
+	[FROM http://18.136.201.21:8083] Recieved updated weights for epoch 2
+		2 of 8 recieved. Current response rate: 0.25
+	[FROM http://3.99.152.205:8083] Recieved updated weights for epoch 2
+		3 of 8 recieved. Current response rate: 0.38
+	[FROM http://3.128.204.116:8083] Recieved updated weights for epoch 2
+		4 of 8 recieved. Current response rate: 0.5
+	[FROM http://52.47.75.71:8083] Recieved updated weights for epoch 2
+		5 of 8 recieved. Current response rate: 0.62
+	[FROM http://3.27.82.43:8083] Recieved updated weights for epoch 2
+		6 of 8 recieved. Current response rate: 0.75
+	[FROM http://51.20.98.34:8083] Recieved updated weights for epoch 2
+		7 of 8 recieved. Current response rate: 0.88
+	[FROM http://54.169.70.132:8083] Recieved updated weights for epoch 2
+		8 of 8 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 2 with 8 updates from 8 workers.
+Epoch completed in 62.97153973579407 seconds.
+Epoch Accuracy: 0.950275
+Training complete
+Accuracies: [0.9182250000000001, 0.950275]
+Epoch durations:
+[(1, 34.402), (2, 39.758)]
+[(1, 37.622), (2, 45.318)]
+[(1, 38.144), (2, 45.952)]
+[(1, 48.144), (2, 56.292)]
+[(1, 35.461), (2, 42.186)]
+[(1, 40.543), (2, 48.106)]
+[(1, 39.359), (2, 46.721)]
+[(1, 50.573), (2, 58.932)]

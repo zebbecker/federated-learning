@@ -18,6 +18,12 @@ import numpy as np
 
 import worker_model
 
+# Use for testing with defined subset of data
+# SET_SIZE = 40000
+# WORKER_NUMBER = 0
+# START_INDEX = WORKER_NUMBER * SET_SIZE
+# END_INDEX = START_INDEX + SET_SIZE
+
 PORT = 8083
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
@@ -81,9 +87,14 @@ class Worker:
         )
 
         # Get random sized subset
-        # set_size = random.randint(100, len(mnist_train))
-        set_size = random.randint(100, 2000)
+        set_size = random.randint(100, len(mnist_train))
+        # set_size = random.randint(100, 2000)
+        # set_size = SET_SIZE
         random_set = list(set(random.sample(range(1, len(mnist_train)), set_size)))
+        # print("Slice: ")
+        # print(START_INDEX, END_INDEX)
+        # slice_set = list(set(range(START_INDEX, END_INDEX)))
+        # subset = Subset(mnist_train, slice_set)
         subset = Subset(mnist_train, random_set)
         print(f"Working with dataset of {set_size} images")
 

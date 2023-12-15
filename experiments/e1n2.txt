@@ -1,0 +1,23 @@
+[zbecker2@ip-172-31-21-18 ~]$ python3 coordinator.py 
+
+
+Coordinator serving at http://15.156.205.154:8082
+	[FROM http://13.208.251.78:8083] Accepting new connection
+	[FROM http://3.99.152.205:8083] Accepting new connection
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 1
+		1 of 2 recieved. Current response rate: 0.5
+	[FROM http://3.99.152.205:8083] Recieved updated weights for epoch 1
+		2 of 2 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 1 with 2 updates from 2 workers.
+Epoch completed in 162.23417210578918 seconds.
+Epoch Accuracy: 0.9699
+Starting epoch 2. Sending notifications to workers
+	[FROM http://3.99.152.205:8083] Recieved updated weights for epoch 2
+		1 of 2 recieved. Current response rate: 0.5
+	[FROM http://13.208.251.78:8083] Recieved updated weights for epoch 2
+		2 of 2 recieved. Current response rate: 1.0
+Quorum achieved - ending epoch 2 with 2 updates from 2 workers.
+Epoch completed in 165.93701243400574 seconds.
+Epoch Accuracy: 0.9739
+Starting epoch 3. Sending notifications to workers
+Terminated
