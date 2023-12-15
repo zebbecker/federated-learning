@@ -16,7 +16,7 @@ QUORUM_PERCENTAGE = 0.75
 COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
 PORT = 8082
 
-WORKER_STARTING_EPOCHS = 2
+WORKER_STARTING_EPOCHS = 4
 
 MAX_EPOCHS = 4  # Stop training after this many global epochs
 
@@ -133,10 +133,13 @@ class Coordinator:
 
         self.workers[hostname].epoch_end_time = time.time()
         self.workers[hostname].epoch_durations.append(
-            round(
-                self.workers[hostname].epoch_end_time
-                - self.workers[hostname].epoch_start_time,
-                3,
+            (
+                epoch_completed,
+                round(
+                    self.workers[hostname].epoch_end_time
+                    - self.workers[hostname].epoch_start_time,
+                    3,
+                ),
             )
         )
         # @TODO Alex please review and make sure this is ok with your load balancing
@@ -235,7 +238,7 @@ class Coordinator:
             # print("Final weights: ", self.weights)
             print("Epoch durations:")
             for worker in self.workers.values():
-                print("\t" + worker.hostname)
+                # print("\t" + worker.hostname)
                 print(worker.epoch_durations)
 
             for worker in self.workers.values():
