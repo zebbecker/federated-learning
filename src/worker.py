@@ -87,8 +87,8 @@ class Worker:
         )
 
         # Get random sized subset
-        set_size = random.randint(100, len(mnist_train))
-        # set_size = random.randint(100, 2000)
+        # set_size = random.randint(100, len(mnist_train))
+        set_size = random.randint(100, 2000)
         # set_size = SET_SIZE
         random_set = list(set(random.sample(range(1, len(mnist_train)), set_size)))
         # print("Slice: ")
@@ -304,13 +304,7 @@ class Worker:
                         print(
                             f"[{self.ip_address}] Coordinator could not use update: {status}"
                         )
-                        # @TODO dont just shutdown: try to connect again and keep working
-                        # @TODO maybe this is what is stalling?
-                        # break
-                        # self.wait_for_notification()
-                        # continue
-                        # Note that this flow never calls wait for notification. not sure if that is an issue.
-                        # Wait for notification just blocks this loop from restarting until an update is ready.
+
                 self.wait_for_notification()
             except Exception as e:
                 print(f"[{self.ip_address}] Problem while training: {e}")

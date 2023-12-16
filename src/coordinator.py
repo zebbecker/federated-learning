@@ -11,14 +11,14 @@ import worker_model
 # Usage: python3 coordinator.py
 # (set QP, coordinator IP, and port number in script below)
 
-QUORUM_PERCENTAGE = 0.8
+QUORUM_PERCENTAGE = 0.75
 
 COORDINATOR_IP = "15.156.205.154"  # Public IP that workers should connect to
 PORT = 8082
 
 WORKER_STARTING_EPOCHS = 4
 
-MAX_EPOCHS = 4  # Stop training after this many global epochs
+MAX_EPOCHS = 3  # Stop training after this many global epochs
 
 
 def is_equal_dimensions(l1, l2):
@@ -142,7 +142,7 @@ class Coordinator:
                 ),
             )
         )
-        # @TODO Alex please review and make sure this is ok with your load balancing
+
         # Check if this update is for current epoch
         if epoch_completed != self.epoch:
             self.workers[hostname].last_push = epoch_completed
@@ -165,8 +165,6 @@ class Coordinator:
         if accuracy:
             self.epoch_accuracies[hostname] = accuracy
 
-        # @TODO improve load balancing. If no workers are excluded by the quorum protocol, this will continue
-        # incrementing for each epoch
         self.workers[hostname].num_epochs += 1  # Assign more work if finished early
 
         print(
